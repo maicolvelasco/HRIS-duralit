@@ -17,6 +17,7 @@ use App\Models\Shift;
 use App\Models\ShiftSchedule;
 use App\Models\Calendar;
 use App\Models\Authorization;
+use App\Models\Titulation;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -128,10 +129,21 @@ public function index()
                        ->get(),
             
         $authorizations = $canViewAuths
-        ? Authorization::select('id', 'nombre', 'descripcion')
+            ? Authorization::with([
+                'roles:id',
+                'titulations' => function($query) {
+                    $query->select('id', 'nombre', 'descripcion');
+                },
+                'titulations.roles:id,nombre' // Carga los roles de cada titulation
+            ])
+            ->select('id', 'nombre', 'descripcion')
             ->orderBy('nombre')
             ->get()
-        : collect(),
+            : collect(),
+
+        $titulations = $canViewAuths
+            ? Titulation::select('id', 'nombre')->orderBy('nombre')->get()
+            : collect(),
 
         'shifts'   => $shifts,
 
@@ -139,6 +151,8 @@ public function index()
 
         'authorizations' => $authorizations,
         
+        'titulations' => $titulations,
+
         // ✅ Pasar roles con permisos a la vista
         'roles' => $roles,
         
@@ -748,38 +762,179 @@ public function index()
         return $locations;
     }
 
-    /* ---------- PERMISOS DE TRABAJO (authorizations) ---------- */
+    /**
+     * Almacena una nueva autorización
+     */
     public function storeAuthorization(Request $request)
     {
-        $request->validate([
-            'nombre'      => 'required|string|max:120|unique:authorizations,nombre',
+        // ✅ CORREGIR VALIDACIÓN - aceptar array de títulos
+        $validated = $request->validate([
+            'nombre' => 'required|string|max:120|unique:authorizations,nombre',
             'descripcion' => 'nullable|string|max:255',
+            'roles' => 'required|array|min:1',
+            'roles.*' => 'exists:roles,id',
+            
+            // ✅ Validar el array completo
+            'titulations_nuevos' => 'nullable|array',
+            'titulations_nuevos.*.nombre' => 'required|string|max:120|distinct|unique:titulations,nombre',
+            'titulations_nuevos.*.descripcion' => 'nullable|string|max:255',
+            'titulations_nuevos.*.roles' => 'required|array|min:1',
+            'titulations_nuevos.*.roles.*' => 'exists:roles,id',
         ]);
 
-        Authorization::create($request->only('nombre','descripcion'));
+        try {
+            // 1. Crear authorization
+            $auth = Authorization::create($request->only('nombre', 'descripcion'));
+            $auth->roles()->sync($request->roles);
 
-        return redirect()->route('settings.index')
-                        ->with('flash','Permiso de trabajo creado');
+            // 2. Crear titulations si se enviaron
+            if (!empty($validated['titulations_nuevos'])) {
+                foreach ($validated['titulations_nuevos'] as $titData) {
+                    $tit = Titulation::create([
+                        'nombre' => $titData['nombre'],
+                        'descripcion' => $titData['descripcion'],
+                    ]);
+                    $tit->roles()->sync($titData['roles']);
+                    $auth->titulations()->attach($tit->id);
+                }
+            }
+
+            return redirect()->route('settings.index')
+                ->with('flash', [
+                    'type' => 'success',
+                    'message' => 'Permiso de trabajo creado correctamente'
+                ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error creando autorización: ' . $e->getMessage());
+            return back()->withErrors(['general' => 'Error al crear el permiso: ' . $e->getMessage()]);
+        }
     }
 
     public function getAuthorization(Authorization $authorization)
     {
-        return response()->json($authorization->only('id','nombre','descripcion'));
+        return response()->json([
+            'id' => $authorization->id,
+            'nombre' => $authorization->nombre,
+            'descripcion' => $authorization->descripcion,
+            'roles' => $authorization->roles->pluck('id'),
+            'titulations' => $authorization->titulations->map(function($t) {
+                return [
+                    'id' => $t->id,
+                    'nombre' => $t->nombre,
+                    'descripcion' => $t->descripcion // Añadir descripción si la necesitas
+                ];
+            }),
+        ]);
     }
 
     public function updateAuthorization(Request $request, Authorization $authorization)
     {
         $request->validate([
-            'nombre'      => ['required','string','max:120', Rule::unique('authorizations')->ignore($authorization->id)],
+            'nombre' => ['required','string','max:120', Rule::unique('authorizations')->ignore($authorization->id)],
             'descripcion' => 'nullable|string|max:255',
+            'roles' => 'required|array|min:1',
+            'roles.*' => 'exists:roles,id',
+            
+            // IDs de títulos para sincronizar la relación
+            'titulations' => 'nullable|array',
+            'titulations.*' => 'exists:titulations,id',
+            
+            // Títulos existentes A EDITAR
+            'titulations_a_actualizar' => 'nullable|array',
+            'titulations_a_actualizar.*.id' => 'required|exists:titulations,id',
+            'titulations_a_actualizar.*.nombre' => 'required|string|max:120',
+            'titulations_a_actualizar.*.descripcion' => 'nullable|string|max:255',
+            'titulations_a_actualizar.*.roles' => 'required|array|min:1',
+            'titulations_a_actualizar.*.roles.*' => 'exists:roles,id',
+            
+            // Nuevos títulos para crear
+            'titulations_nuevos' => 'nullable|array',
+            'titulations_nuevos.*.nombre' => 'required|string|max:120|distinct|unique:titulations,nombre',
+            'titulations_nuevos.*.descripcion' => 'nullable|string|max:255',
+            'titulations_nuevos.*.roles' => 'required|array|min:1',
+            'titulations_nuevos.*.roles.*' => 'exists:roles,id',
         ]);
 
-        $authorization->update($request->only('nombre','descripcion'));
+        // Usar transacción para garantizar consistencia
+        return \DB::transaction(function () use ($request, $authorization) {
+            try {
+                // 0. Guardar IDs originales ANTES de cualquier modificación
+                $originalTitulationIds = $authorization->titulations()->pluck('titulations.id')->toArray();
+                \Log::info('📝 IDs de títulos originales:', $originalTitulationIds);
+                
+                // 1. Actualizar authorization
+                $authorization->update($request->only('nombre', 'descripcion'));
+                $authorization->roles()->sync($request->roles);
+                
+                // 2. Sincronizar relaciones de títulos existentes
+                $authorization->titulations()->sync($request->titulations ?? []);
+                
+                // 3. ACTUALIZAR títulos existentes
+                if (!empty($request->titulations_a_actualizar)) {
+                    foreach ($request->titulations_a_actualizar as $titData) {
+                        $titulation = \App\Models\Titulation::find($titData['id']);
+                        if ($titulation) {
+                            $titulation->update([
+                                'nombre' => $titData['nombre'],
+                                'descripcion' => $titData['descripcion'],
+                            ]);
+                            $titulation->roles()->sync($titData['roles']);
+                        }
+                    }
+                }
+                
+                // 4. CREAR nuevos títulos
+                if (!empty($request->titulations_nuevos)) {
+                    foreach ($request->titulations_nuevos as $titData) {
+                        $newTit = Titulation::create([
+                            'nombre' => $titData['nombre'],
+                            'descripcion' => $titData['descripcion'],
+                        ]);
+                        $newTit->roles()->sync($titData['roles']);
+                        $authorization->titulations()->attach($newTit->id);
+                    }
+                }
+                
+                // 5. ELIMINAR títulos que fueron quitados completamente
+                $newTitulationIds = $request->titulations ?? [];
+                $titulosEliminados = array_diff($originalTitulationIds, $newTitulationIds);
+                
+                \Log::info('🗑️ Títulos a eliminar:', $titulosEliminados);
+                
+                if (!empty($titulosEliminados)) {
+                    // IMPORTANTE: Eliminar PRIMERO de las tablas pivote
+                    // Verifica que el nombre de la tabla sea correcto: roles_titulations
+                    \DB::table('rol_titulation')
+                        ->whereIn('titulation_id', $titulosEliminados)
+                        ->delete();
+                    
+                    \DB::table('authorization_titulation')
+                        ->whereIn('titulation_id', $titulosEliminados)
+                        ->delete();
+                    
+                    // FINALMENTE eliminar los títulos completamente
+                    $deleted = Titulation::whereIn('id', $titulosEliminados)->delete();
+                    
+                    \Log::info('✅ Títulos eliminados:', ['count' => $deleted, 'ids' => $titulosEliminados]);
+                }
 
-        return redirect()->route('settings.index')
-                        ->with('flash','Permiso de trabajo actualizado');
+                return redirect()->route('settings.index')
+                    ->with('flash', [
+                        'type' => 'success',
+                        'message' => 'Permiso de trabajo actualizado correctamente'
+                    ]);
+
+            } catch (\Exception $e) {
+                \Log::error('❌ Error actualizando autorización: ' . $e->getMessage());
+                \Log::error('Trace: ' . $e->getTraceAsString());
+                
+                // La transacción se revertirá automáticamente al lanzar la excepción
+                throw $e; // Re-lanzar para que el controlador maneje el error
+            }
+        });
     }
-
+    
    /* ========== REPORTES ========== */
     public function generateReport(Request $request)
     {

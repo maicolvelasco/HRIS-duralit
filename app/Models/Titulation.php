@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
-class Authorization extends Model
+class Titulation extends Model
 {
     use HasFactory, HasUuids;
 
@@ -21,11 +21,11 @@ class Authorization extends Model
 
     public function roles()
     {
-        return $this->belongsToMany(Rol::class, 'rol_authorization', 'authorization_id', 'rol_id');
+        return $this->belongsToMany(Rol::class, 'rol_titulation', 'titulation_id', 'rol_id');
     }
 
-    public function titulations()
+    public function authorizations()
     {
-        return $this->belongsToMany(Titulation::class, 'authorization_titulation', 'authorization_id', 'titulation_id');
+        return $this->belongsToMany(Authorization::class, 'authorization_titulation', 'titulation_id', 'authorization_id');
     }
 }

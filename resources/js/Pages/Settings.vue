@@ -157,6 +157,10 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  titulations: {
+    type: Array,
+    default: () => []
+  },
   usersWithPermissions: {
     type: Array,
     default: () => []
@@ -1321,8 +1325,8 @@ const iconNames = ['ChevronUpIcon', 'ChevronDownIcon', 'UserCircleIcon'];
     <CreateSectionModal v-if="permissions['Crear Secciones']" :show="showCreateSection" @close="showCreateSection = false" />
     <EditSectionModal v-if="permissions['Modificar Secciones']" :show="showEditSection" :section="selectedSection" @close="showEditSection = false" />
 
-    <CreateAuthorizationModal v-if="permissions['Crear Permisos de Trabajo']" :show="showCreateAuthorization" @close="showCreateAuthorization = false" />
-    <EditAuthorizationModal   v-if="permissions['Modificar Permisos de Trabajo']" :show="showEditAuthorization" :authorization="selectedAuthorization" @close="showEditAuthorization = false" />
+    <CreateAuthorizationModal v-if="permissions['Crear Permisos de Trabajo']" :show="showCreateAuthorization" :roles="roles" @close="showCreateAuthorization = false" />
+    <EditAuthorizationModal v-if="permissions['Modificar Permisos de Trabajo']" :show="showEditAuthorization" :authorization="selectedAuthorization" :roles="roles" :titulations="titulations" @close="showEditAuthorization = false" />
 
     <CreateShiftModal v-if="permissions['Crear Turnos']" :show="showCreateShift" :users="users" :branches="branches" :groups="groups" :sections="sections" :roles="roles" @close="showCreateShift = false" />
     <EditShiftModal v-if="permissions['Modificar Turnos']" :show="showEditShift" :shift="selectedShift" :users="users" :branches="branches" :groups="groups" :sections="sections" :roles="roles" @close="showEditShift = false" />

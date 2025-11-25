@@ -34,4 +34,14 @@ class Rol extends Model
     {
         return $this->belongsToMany(Shift::class, 'rol_shift', 'rol_id', 'shift_id');
     }
+
+    public function authorizations()
+    {
+        return $this->belongsToMany(Authorization::class, 'rol_authorization', 'rol_id', 'authorization_id');
+    }
+
+    public function titulations()
+    {
+        return $this->belongsToMany(Titulation::class, 'rol_titulation', 'rol_id', 'titulation_id');
+    }
 }
