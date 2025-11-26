@@ -5,6 +5,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AssistanceController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\HrManagerController;
+use App\Http\Controllers\OvertimeController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -97,6 +98,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/remove-user', [HrManagerController::class, 'removeUserFromGroup'])->name('remove-user');
         Route::post('/add-users', [HrManagerController::class, 'addUsersByFilter'])->name('add-users');
     });
+
+    Route::get('/overtimes', [OvertimeController::class, 'index'])->name('overtimes.index');
+    Route::post('/overtimes', [OvertimeController::class, 'store'])->name('overtimes.store');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

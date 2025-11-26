@@ -74,6 +74,9 @@ async function logout() {
                 <NavLink :href="route('assistances.index')" :active="route().current('assistances.index')">
                   Asistencia
                 </NavLink>
+                <NavLink :href="route('overtimes.index')" :active="route().current('overtimes.index')">
+                  Sobretiempo
+                </NavLink>
               </div>
             </div>
 
@@ -210,6 +213,9 @@ async function logout() {
           </ResponsiveNavLink>
           <ResponsiveNavLink :href="route('assistances.index')" :active="route().current('assistances.index')">
             Asistencia
+          </ResponsiveNavLink>
+          <ResponsiveNavLink :href="route('overtimes.index')" :active="route().current('overtimes.index')">
+            Sobretiempo
           </ResponsiveNavLink>
         </nav>
       </div>
