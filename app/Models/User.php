@@ -116,4 +116,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(HrManager::class, 'user_id');
     }
+
+    public function permissionRequests()
+    {
+        return $this->hasMany(PermissionRequest::class);
+    }
 }

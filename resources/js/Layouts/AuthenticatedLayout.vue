@@ -89,6 +89,13 @@ async function logout() {
                 <NavLink :href="route('overtimes.index')" :active="route().current('overtimes.index')">
                   Sobretiempo
                 </NavLink>
+                <NavLink 
+                  v-if="user.permissions?.includes?.('Ver Autorizaciones')"
+                  :href="route('permissions.index')"
+                  :active="route().current('permissions.index')"
+                >
+                  Permisos
+                </NavLink>
               </div>
             </div>
 
@@ -232,6 +239,13 @@ async function logout() {
           </ResponsiveNavLink>
           <ResponsiveNavLink :href="route('overtimes.index')" :active="route().current('overtimes.index')">
             Sobretiempo
+          </ResponsiveNavLink>
+          <ResponsiveNavLink 
+            v-if="user.permissions?.includes?.('Ver Autorizaciones')"
+            :href="route('permissions.index')"
+            :active="route().current('permissions.index')"
+          >
+            Permisos
           </ResponsiveNavLink>
         </nav>
       </div>

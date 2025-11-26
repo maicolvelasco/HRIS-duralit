@@ -28,4 +28,9 @@ class Titulation extends Model
     {
         return $this->belongsToMany(Authorization::class, 'authorization_titulation', 'titulation_id', 'authorization_id');
     }
+
+    public function permissionRequests()
+    {
+        return $this->hasMany(PermissionRequest::class);
+    }
 }

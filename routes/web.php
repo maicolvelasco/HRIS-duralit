@@ -6,6 +6,7 @@ use App\Http\Controllers\AssistanceController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\HrManagerController;
 use App\Http\Controllers\OvertimeController;
+use App\Http\Controllers\PermissionController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -91,6 +92,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/rrhh', [HrManagerController::class, 'index'])->name('rrhh.index');
     Route::post('/rrhh', [HrManagerController::class, 'store'])->name('rrhh.store');
     Route::put('/rrhh', [HrManagerController::class, 'update'])->name('rrhh.update');
+
+    /* ---------- PERMISOS DE TRABAJO ---------- */
+    Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
+    Route::post('/permissions', [PermissionController::class, 'store'])->name('permissions.store');
+    Route::put('/permissions/{permission}', [PermissionController::class, 'update'])->name('permissions.update');
+    Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->name('permissions.destroy');
+    Route::post('/permissions/{permission}/status', [PermissionController::class, 'updateStatus'])->name('permissions.update-status');
+
+    // NUEVA RUTA PARA OBTENER TITULACIONES
+    Route::get('/permissions/authorizations/{authorization}/titulations', [PermissionController::class, 'getTitulationsByAuthorization'])->name('permissions.authorizations.titulations');
 
     Route::prefix('group-managers')->name('group-managers.')->group(function () {
         Route::post('/assign', [HrManagerController::class, 'assignManager'])->name('assign');
