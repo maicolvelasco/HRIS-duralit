@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
@@ -15,10 +15,7 @@ import { SunIcon, MoonIcon } from '@heroicons/vue/24/outline';
 import FlashMessage from '@/Components/FlashMessage.vue';
 
 const user = usePage().props.auth.user;
-
-console.log('Usuario:', user);
-console.log('Permisos reales:', user.permissions);
-console.log('¿Incluye Control de Jerarquia?', user.permissions?.includes?.('Control de Jerarquia'));
+const isManager = computed(() => usePage().props.auth.isManager || false);
 
 const showingSidebar = ref(false);
 
@@ -90,11 +87,25 @@ async function logout() {
                   Sobretiempo
                 </NavLink>
                 <NavLink 
+                  v-if="isManager"
+                  :href="route('overtimes.team')"
+                  :active="route().current('overtimes.team')"
+                >
+                  S. Tiempo de Equipo
+                </NavLink>
+                <NavLink 
                   v-if="user.permissions?.includes?.('Ver Autorizaciones')"
                   :href="route('permissions.index')"
                   :active="route().current('permissions.index')"
                 >
                   Permisos
+                </NavLink>
+                <NavLink 
+                  v-if="isManager || $page.props.auth.isHrManager"
+                  :href="route('permissions.team')"
+                  :active="route().current('permissions.team')"
+                >
+                  P. de Grupo
                 </NavLink>
               </div>
             </div>
@@ -240,12 +251,26 @@ async function logout() {
           <ResponsiveNavLink :href="route('overtimes.index')" :active="route().current('overtimes.index')">
             Sobretiempo
           </ResponsiveNavLink>
+          <ResponsiveNavLink
+            v-if="isManager"
+            :href="route('overtimes.team')"
+            :active="route().current('overtimes.team')"
+          >
+            S. Tiempo de Equipo
+          </ResponsiveNavLink>
           <ResponsiveNavLink 
             v-if="user.permissions?.includes?.('Ver Autorizaciones')"
             :href="route('permissions.index')"
             :active="route().current('permissions.index')"
           >
             Permisos
+          </ResponsiveNavLink>
+          <ResponsiveNavLink 
+            v-if="isManager || $page.props.auth.isHrManager"
+            :href="route('permissions.team')"
+            :active="route().current('permissions.team')"
+          >
+            P. de Grupo
           </ResponsiveNavLink>
         </nav>
       </div>

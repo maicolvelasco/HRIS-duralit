@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PermissionRequest extends Model
 {
@@ -29,30 +30,32 @@ class PermissionRequest extends Model
         'cantidad_horas',
         'estado',
         'observaciones',
+        'report_id',
     ];
 
     protected $casts = [
-        'fecha_inicio' => 'date',
-        'fecha_fin' => 'date',
-        'hora_inicio' => 'datetime:H:i',
-        'hora_fin' => 'datetime:H:i',
         'cantidad_dias' => 'decimal:2',
         'cantidad_horas' => 'decimal:2',
     ];
 
     // Relaciones
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function authorization()
+    public function authorization(): BelongsTo
     {
         return $this->belongsTo(Authorization::class);
     }
 
-    public function titulation()
+    public function titulation(): BelongsTo
     {
         return $this->belongsTo(Titulation::class);
+    }
+
+    public function report(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'report_id');
     }
 }

@@ -113,6 +113,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/overtimes', [OvertimeController::class, 'index'])->name('overtimes.index');
     Route::post('/overtimes', [OvertimeController::class, 'store'])->name('overtimes.store');
     Route::post('/overtimes/{overtime}/update-status', [OvertimeController::class, 'updateStatus'])->name('overtimes.update-status');
+    Route::get('/overtimes/team', [OvertimeController::class, 'team'])->name('overtimes.team');
+
+    Route::get('/permissions/team', [PermissionController::class, 'team'])->name('permissions.team');
+    Route::post('/permissions/{permission}/update-status', [PermissionController::class, 'updateStatus'])->name('permissions.update-status');
+    Route::get('/permissions/{permission}/edit', [PermissionController::class, 'edit'])->name('permissions.edit');
+    Route::put('/permissions/{permission}', [PermissionController::class, 'update'])->name('permissions.update');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

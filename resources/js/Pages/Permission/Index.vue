@@ -4,6 +4,7 @@ import { Head, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import PermissionModal from '@/Components/PermissionModal.vue';
+import PermissionEditModal from '@/Components/PermissionEditModal.vue';
 
 const props = defineProps({
     permissions: Object,
@@ -13,19 +14,78 @@ const props = defineProps({
 
 const user = computed(() => usePage().props.auth.user);
 const showModal = ref(false);
+const showEditModal = ref(false);
+const editingPermission = ref(null);
 
-const formatDate = (date) => {
-    if (!date) return '-';
-    return new Date(date).toLocaleDateString('es-ES', { 
-        day: '2-digit', 
-        month: 'short', 
-        year: 'numeric' 
-    });
+// Abrir modal de edición
+const openEditModal = (permission) => {
+    editingPermission.value = permission;
+    showEditModal.value = true;
 };
 
+// Formatear fecha SIN zona horaria
+const formatDate = (date) => {
+    if (!date) return '';
+    
+    let dateStr = '';
+    
+    // Si es objeto con propiedad date (Laravel)
+    if (date && typeof date === 'object' && date.date) {
+        dateStr = date.date;
+    } 
+    // Si ya es string
+    else if (typeof date === 'string') {
+        dateStr = date;
+    }
+    else {
+        return '';
+    }
+    
+    // Parsear directamente del string YYYY-MM-DD sin crear Date object
+    // para evitar problemas de timezone
+    const [year, month, day] = dateStr.split(' ')[0].split('-');
+    return `${day}/${month}/${year}`;
+};
+
+// Formatear hora
 const formatTime = (time) => {
-    if (!time) return '-';
+    if (!time) return '';
     return time.substring(0, 5);
+};
+
+// Formatear período completo
+const formatPeriod = (permission) => {
+    const parts = [];
+    
+    // Para permisos por DÍAS
+    if (permission.tipo === 'dias') {
+        if (permission.fecha_inicio) {
+            const fechaInicio = formatDate(permission.fecha_inicio);
+            if (permission.fecha_fin) {
+                const fechaFin = formatDate(permission.fecha_fin);
+                parts.push(`${fechaInicio} - ${fechaFin}`);
+            } else {
+                parts.push(fechaInicio);
+            }
+        }
+    }
+    
+    // Para permisos por HORAS
+    if (permission.tipo === 'horas') {
+        // Mostrar solo fecha de inicio
+        if (permission.fecha_inicio) {
+            parts.push(formatDate(permission.fecha_inicio));
+        }
+        
+        // Agregar rango de horas
+        if (permission.hora_inicio && permission.hora_fin) {
+            const horaInicio = formatTime(permission.hora_inicio);
+            const horaFin = formatTime(permission.hora_fin);
+            parts.push(`${horaInicio} - ${horaFin}`);
+        }
+    }
+    
+    return parts.join(' | ') || '-';
 };
 
 const getStatusClass = (estado) => {
@@ -52,7 +112,7 @@ const userName = computed(() => {
         <template #header>
             <div class="flex justify-between items-center">
                 <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                    Permisos de Trabajo
+                    Mis Permisos de Trabajo
                 </h2>
                 <PrimaryButton @click="showModal = true">
                     Nuevo Permiso
@@ -85,6 +145,9 @@ const userName = computed(() => {
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                     Motivo
                                 </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                    Acciones
+                                </th>
                             </tr>
                         </thead>
                         <tbody class="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -99,12 +162,7 @@ const userName = computed(() => {
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                                    <template v-if="permission.tipo === 'dias'">
-                                        {{ formatDate(permission.fecha_inicio) }} - {{ formatDate(permission.fecha_fin) }}
-                                    </template>
-                                    <template v-else>
-                                        {{ formatTime(permission.hora_inicio) }} - {{ formatTime(permission.hora_fin) }}
-                                    </template>
+                                    {{ formatPeriod(permission) }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                                     <template v-if="permission.tipo === 'dias'">
@@ -122,9 +180,18 @@ const userName = computed(() => {
                                 <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-300 max-w-xs truncate">
                                     {{ permission.motivo }}
                                 </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                                    <PrimaryButton 
+                                        v-if="permission.estado === 'Rechazado'" 
+                                        @click="openEditModal(permission)"
+                                        class="bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700"
+                                    >
+                                        Editar
+                                    </PrimaryButton>
+                                </td>
                             </tr>
                             <tr v-if="filteredPermissions.length === 0">
-                                <td colspan="6" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                                <td colspan="7" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
                                     No se encontraron solicitudes de permiso.
                                 </td>
                             </tr>
@@ -160,14 +227,7 @@ const userName = computed(() => {
                             </div>
                             <div class="flex justify-between">
                                 <span class="font-medium">Período:</span>
-                                <span>
-                                    <template v-if="permission.tipo === 'dias'">
-                                        {{ formatDate(permission.fecha_inicio) }} - {{ formatDate(permission.fecha_fin) }}
-                                    </template>
-                                    <template v-else>
-                                        {{ formatTime(permission.hora_inicio) }} - {{ formatTime(permission.hora_fin) }}
-                                    </template>
-                                </span>
+                                <span class="text-right">{{ formatPeriod(permission) }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="font-medium">Cantidad:</span>
@@ -185,6 +245,16 @@ const userName = computed(() => {
                                 <p class="mt-1 text-gray-600 dark:text-gray-400">{{ permission.motivo }}</p>
                             </div>
                         </div>
+                        
+                        <div class="mt-4 flex justify-end">
+                            <PrimaryButton 
+                                v-if="permission.estado === 'Rechazado'" 
+                                @click="openEditModal(permission)"
+                                class="bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700 w-full justify-center"
+                            >
+                                Editar y Reenviar
+                            </PrimaryButton>
+                        </div>
                     </div>
                     
                     <div v-if="filteredPermissions.length === 0" class="text-center text-gray-500 dark:text-gray-400 py-8">
@@ -194,12 +264,20 @@ const userName = computed(() => {
             </div>
         </div>
 
-        <!-- Modal -->
+        <!-- Modal Crear -->
         <PermissionModal
             :show="showModal"
             :authorizations="authorizations"
             :user-name="userName"
             @close="showModal = false"
+        />
+
+        <!-- Modal Editar -->
+        <PermissionEditModal
+            :show="showEditModal"
+            :permission="editingPermission"
+            :authorizations="authorizations"
+            @close="showEditModal = false"
         />
     </AuthenticatedLayout>
 </template>

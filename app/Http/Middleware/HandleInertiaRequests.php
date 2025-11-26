@@ -4,6 +4,8 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use App\Models\GroupManager;
+use App\Models\HrManager;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -35,6 +37,8 @@ class HandleInertiaRequests extends Middleware
                     $request->user()->only(['id', 'nombre', 'apellido', 'codigo', 'foto']),
                     ['permissions' => $request->user()->permissions->pluck('nombre')] // ✅ solo strings
                 ) : null,
+                'isManager' => $request->user() ? GroupManager::where('user_id', $request->user()->id)->exists() : false,
+                'isHrManager' => HrManager::where('user_id', $request->user()?->id)->exists(),
             ],
             'csrf_token' => csrf_token(),
             'flash' => fn () => $request->session()->get('flash'),

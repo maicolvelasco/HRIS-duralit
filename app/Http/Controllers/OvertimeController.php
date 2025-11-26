@@ -91,4 +91,37 @@ class OvertimeController extends Controller
 
         return redirect()->back()->with('success', 'Estado actualizado correctamente.');
     }
+
+    /* ---------- Vista de Sobretiempos del Equipo ---------- */
+    public function team()
+    {
+        // Verificar si el usuario logueado es jefe
+        $manager = GroupManager::where('user_id', auth()->id())->first();
+        
+        if (!$manager) {
+            return redirect()->route('overtimes.index')
+                ->with('error', 'No tienes permiso para ver esta sección.');
+        }
+
+        // IDs de subordinados
+        $subordinateIds = $manager->group->users()->pluck('id')->toArray();
+        
+        // ✅ TRAE TODOS los sobretiempos del equipo (sin filtrar por estado)
+        $subordinatesOvertimes = Overtime::with('user:id,codigo,nombre,apellido')
+            ->whereIn('user_id', $subordinateIds) // Quita: ->where('estado', 'Pendiente')
+            ->orderByRaw("CASE WHEN estado = 'Pendiente' THEN 1 ELSE 2 END") // Pendientes primero
+            ->orderByDesc('fecha')
+            ->get();
+
+        // Horas disponibles del usuario logueado
+        $totalDisponible = Overtime::where('user_id', auth()->id())
+            ->where('estado', 'Aprobado')
+            ->sum('contador');
+
+        return Inertia::render('Overtime/Team', [
+            'totalDisponible' => $totalDisponible,
+            'subordinatesOvertimes' => $subordinatesOvertimes,
+            'isManager' => true,
+        ]);
+    }
 }

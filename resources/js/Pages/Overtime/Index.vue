@@ -10,7 +10,7 @@ defineProps({
   overtimes: Array,
   totalDisponible: Number,
   isManager: Boolean,
-  subordinatesOvertimes: Array,
+  // subordinatesOvertimes: Array, // ⭐️ Ya no se necesita
 });
 
 const showCreateOvertime = ref(false);
@@ -115,60 +115,7 @@ function badgeColor(estado) {
           </div>
         </div>
 
-        <!-- Registros de subordinados (solo para jefes) -->
-        <div v-if="isManager && subordinatesOvertimes.length > 0" class="bg-white dark:bg-slate-800 shadow-md rounded-xl p-6">
-          <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Sobretiempos Pendientes de mi Equipo</h3>
-          
-          <!-- Escritorio -->
-          <div class="hidden md:block overflow-x-auto">
-            <table class="min-w-full">
-              <thead class="bg-gray-50 dark:bg-slate-900">
-                <tr>
-                  <th class="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-300">Usuario</th>
-                  <th class="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-300">Fecha</th>
-                  <th class="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-300">Horas</th>
-                  <th class="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-300">Trabajo</th>
-                  <th class="px-4 py-3 text-left text-sm font-medium text-gray-600 dark:text-gray-300">Acción</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                <tr v-for="ot in subordinatesOvertimes" :key="ot.id" class="hover:bg-gray-50 dark:hover:bg-slate-700">
-                  <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{{ ot.user.codigo }} - {{ ot.user.nombre }} {{ ot.user.apellido }}</td>
-                  <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{{ ot.fecha }}</td>
-                  <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{{ ot.contador }}</td>
-                  <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{{ ot.trabajo }}</td>
-                  <td class="px-4 py-3 text-sm">
-                    <PrimaryButton size="sm" @click="$inertia.post(route('overtimes.update-status', ot.id), { estado: 'Aprobado' })">
-                      <Icon name="CheckCircleIcon" class="w-4 h-4" />
-                      Aprobar
-                    </PrimaryButton>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Móvil -->
-          <div class="md:hidden space-y-4">
-            <div v-for="ot in subordinatesOvertimes" :key="ot.id" class="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow">
-              <div class="flex justify-between items-start mb-2">
-                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ ot.user.nombre }} {{ ot.user.apellido }}</span>
-                <span class="px-2 py-1 text-xs rounded-full" :class="badgeColor(ot.estado)">
-                  {{ ot.estado }}
-                </span>
-              </div>
-              <div class="text-sm text-gray-600 dark:text-gray-300 space-y-1 mb-3">
-                <div>Fecha: {{ ot.fecha }}</div>
-                <div>Horas: {{ ot.contador }}</div>
-                <div>Trabajo: {{ ot.trabajo }}</div>
-              </div>
-              <PrimaryButton size="sm" class="w-full" @click="$inertia.post(route('overtimes.update-status', ot.id), { estado: 'Aprobado' })">
-                <Icon name="CheckCircleIcon" class="w-4 h-4 mr-2" />
-                Aprobar
-              </PrimaryButton>
-            </div>
-          </div>
-        </div>
+        <!-- ⭐️ ELIMINADO: Toda la sección de Sobretiempos del Equipo -->
 
       </div>
     </div>
