@@ -12,13 +12,14 @@ import Icon from '@/Components/Icon.vue';
 const props = defineProps({
   show: { type: Boolean, default: false },
   permission: { type: Object, default: null },
+  horasDisponibles: { type: Number, default: 0 }, // ← NUEVO PROP
+  authorizations: Array, // ← NUEVO PROP
 });
 
 const emit = defineEmits(['close']);
 
 const isMobile = computed(() => window.innerWidth < 768);
 
-// Formulario - SOLO campos editables
 const form = useForm({
   tipo: 'horas',
   fecha_inicio: '',
@@ -26,13 +27,80 @@ const form = useForm({
   hora_inicio: '',
   hora_fin: '',
   motivo: '',
+  authorization_id: null,  // ← Agrega esto
+  titulation_id: null,      // ← Agrega esto
 });
 
-// Datos de solo lectura
+// Estados para compensaciones
+const isCompensacion = ref(false);
+const horasSolicitadas = computed(() => {
+  if (!isCompensacion.value) return 0;
+  if (form.tipo !== 'horas' || !form.hora_inicio || !form.hora_fin) return 0;
+  
+  const [h1, m1] = form.hora_inicio.split(':').map(Number);
+  const [h2, m2] = form.hora_fin.split(':').map(Number);
+  const totalMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
+  return totalMinutes > 0 ? (totalMinutes / 60).toFixed(2) : 0;
+});
+
+const tieneHorasSuficientes = computed(() => {
+  if (!isCompensacion.value) return true;
+  return parseFloat(horasSolicitadas.value) <= props.horasDisponibles;
+});
+
+const isDias = computed(() => form.tipo === 'dias');
+
+// Cargar datos cuando se abre el modal
+watch(() => props.show, (newVal) => {
+  if (newVal && props.permission) {
+    // Detectar si es compensación
+    isCompensacion.value = props.permission.authorization?.nombre === 'Compensacion';
+    
+    // Si es compensación, forzar tipo horas
+    if (isCompensacion.value) {
+      form.tipo = 'horas';
+    } else {
+      form.tipo = props.permission.tipo || 'horas';
+    }
+    
+    // Cargar fechas
+    const loadDate = (date) => {
+      if (!date) return '';
+      if (typeof date === 'object' && date.date) date = date.date;
+      return typeof date === 'string' ? date.split(' ')[0] : '';
+    };
+    
+    form.fecha_inicio = loadDate(props.permission.fecha_inicio);
+    form.fecha_fin = loadDate(props.permission.fecha_fin);
+    form.hora_inicio = props.permission.hora_inicio ? props.permission.hora_inicio.substring(0, 5) : '';
+    form.hora_fin = props.permission.hora_fin ? props.permission.hora_fin.substring(0, 5) : '';
+    form.motivo = props.permission.motivo || '';
+    form.authorization_id = props.permission.authorization_id; // ← Agrega esto
+    form.titulation_id = props.permission.titulation_id;
+  } else {
+    form.reset();
+    form.tipo = 'horas';
+    isCompensacion.value = false;
+  }
+});
+
+// Calcular cantidad mostrada
+const cantidadCalculada = computed(() => {
+  if (isDias.value && form.fecha_inicio && form.fecha_fin) {
+    const start = new Date(form.fecha_inicio);
+    const end = new Date(form.fecha_fin);
+    const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    return diff > 0 ? `${diff} días` : '-';
+  } else if (!isDias.value && form.hora_inicio && form.hora_fin) {
+    return `${horasSolicitadas.value} horas`;
+  }
+  return '-';
+});
+
+// Formatear datos de solo lectura
 const permissionData = computed(() => {
   if (!props.permission) return null;
   
-  // Usuario que rechazó
   let rejectedBy = 'N/A';
   if (props.permission.report) {
     rejectedBy = `${props.permission.report.nombre} ${props.permission.report.apellido}`;
@@ -41,22 +109,16 @@ const permissionData = computed(() => {
     }
   }
   
-  // Formatear fecha de inicio SIN timezone
-  let fechaInicio = '-';
-  if (props.permission.fecha_inicio) {
-    let dateStr = props.permission.fecha_inicio;
-    
-    // Si es objeto, extraer el string
-    if (typeof dateStr === 'object' && dateStr.date) {
-      dateStr = dateStr.date;
-    }
-    
-    // Parsear directamente del string YYYY-MM-DD
+  const formatDate = (date) => {
+    if (!date) return '-';
+    let dateStr = date;
+    if (typeof date === 'object' && date.date) dateStr = date.date;
     if (typeof dateStr === 'string') {
       const [year, month, day] = dateStr.split(' ')[0].split('-');
-      fechaInicio = `${day}/${month}/${year}`;
+      return `${day}/${month}/${year}`;
     }
-  }
+    return '-';
+  };
   
   return {
     id: props.permission.id,
@@ -65,99 +127,42 @@ const permissionData = computed(() => {
     estado: props.permission.estado,
     rejected_by: rejectedBy,
     observaciones: props.permission.observaciones || 'Sin observaciones',
-    fecha_inicio: fechaInicio,
+    fecha_inicio: formatDate(props.permission.fecha_inicio),
   };
 });
 
-// Cargar datos cuando se abre el modal
-watch(() => props.show, (newVal) => {
-  if (newVal && props.permission) {
-    console.log('Permission completo:', props.permission);
-    
-    // Cargar tipo
-    form.tipo = props.permission.tipo || 'horas';
-    
-    // FECHA INICIO - Extraer string directamente sin conversión de fecha
-    if (props.permission.fecha_inicio) {
-      let fechaStr = props.permission.fecha_inicio;
-      
-      // Si es objeto con propiedad date
-      if (typeof fechaStr === 'object' && fechaStr.date) {
-        fechaStr = fechaStr.date;
-      }
-      
-      // Asegurar que es string y tomar solo la parte de fecha (YYYY-MM-DD)
-      if (typeof fechaStr === 'string') {
-        // Si tiene hora, quitarla: "2025-11-27 00:00:00" -> "2025-11-27"
-        form.fecha_inicio = fechaStr.split(' ')[0];
-      } else {
-        form.fecha_inicio = '';
-      }
-      
-      console.log('Fecha inicio cargada:', form.fecha_inicio);
-    } else {
-      form.fecha_inicio = '';
-      console.log('NO HAY fecha_inicio');
-    }
-    
-    // FECHA FIN
-    if (props.permission.fecha_fin) {
-      let fechaStr = props.permission.fecha_fin;
-      
-      if (typeof fechaStr === 'object' && fechaStr.date) {
-        fechaStr = fechaStr.date;
-      }
-      
-      if (typeof fechaStr === 'string') {
-        form.fecha_fin = fechaStr.split(' ')[0];
-      } else {
-        form.fecha_fin = '';
-      }
-    } else {
-      form.fecha_fin = '';
-    }
-    
-    // HORAS
-    form.hora_inicio = props.permission.hora_inicio ? props.permission.hora_inicio.substring(0, 5) : '';
-    form.hora_fin = props.permission.hora_fin ? props.permission.hora_fin.substring(0, 5) : '';
-    form.motivo = props.permission.motivo || '';
-    
-    console.log('Form después de cargar:', { ...form.data() });
-  } else {
-    form.reset();
-    form.tipo = 'horas';
-  }
-});
-
-const isDias = computed(() => form.tipo === 'dias');
-
-// Calcular cantidades
-const cantidadCalculada = computed(() => {
-  if (isDias.value && form.fecha_inicio && form.fecha_fin) {
-    const start = new Date(form.fecha_inicio);
-    const end = new Date(form.fecha_fin);
-    const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-    return diff > 0 ? `${diff} días` : '-';
-  } else if (!isDias.value && form.hora_inicio && form.hora_fin) {
-    const [h1, m1] = form.hora_inicio.split(':').map(Number);
-    const [h2, m2] = form.hora_fin.split(':').map(Number);
-    const totalMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
-    const hours = totalMinutes > 0 ? (totalMinutes / 60).toFixed(2) : 0;
-    return `${hours} horas`;
-  }
-  return '-';
-});
-
 function submit() {
+  // Validación adicional para compensaciones
+  if (isCompensacion.value && !tieneHorasSuficientes.value) {
+    form.setError('hora_fin', `No tienes suficientes horas disponibles. Tienes ${props.horasDisponibles} hrs, solicitas ${horasSolicitadas.value} hrs.`);
+    return;
+  }
+
+  // Preparar datos adicionales que faltan
+  const formData = {
+    ...form.data(),
+    // Asegurar que se envíen los IDs si existen
+    authorization_id: props.permission?.authorization_id,
+    titulation_id: props.permission?.titulation_id,
+  };
+
+  // Enviar la petición PUT al servidor
   form.put(route('permissions.update', props.permission.id), {
-    preserveScroll: true,
-    onSuccess: () => close(),
+    data: formData,
+    onSuccess: () => {
+      close(); // ✅ Cerrar modal al tener éxito
+    },
+    onError: (errors) => {
+      console.error('Error al reenviar:', errors);
+      // Los errores se mostrarán automáticamente en los componentes InputError
+    }
   });
 }
 
 function close() {
   form.reset();
   form.tipo = 'horas';
+  isCompensacion.value = false;
   emit('close');
 }
 </script>
@@ -177,15 +182,26 @@ function close() {
             <Icon name="PencilSquareIcon" class="w-6 h-6 text-orange-600 dark:text-orange-400" />
             Editar Permiso Rechazado
           </h3>
-          <div v-if="permissionData" class="text-sm text-gray-500 dark:text-gray-400">
-            ID: {{ permissionData.id }}
-          </div>
         </div>
       </div>
 
       <!-- Scrollable content -->
       <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         <template v-if="permissionData">
+          <!-- Cuadro de Horas Disponibles (solo para Compensación) -->
+          <div v-if="isCompensacion" class="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-400 p-4 rounded-lg">
+            <div class="flex items-center gap-2 mb-2">
+              <Icon name="ClockIcon" class="w-5 h-5 text-blue-600 dark:text-blue-300" />
+              <h4 class="font-semibold text-blue-800 dark:text-blue-200">Horas de Compensación Disponibles</h4>
+            </div>
+            <p class="text-2xl font-bold text-blue-700 dark:text-blue-300">
+              {{ props.horasDisponibles.toFixed(2) }} horas
+            </p>
+            <p class="text-sm text-blue-600 dark:text-blue-400 mt-1">
+              Las horas se restarán automáticamente de tus compensaciones disponibles.
+            </p>
+          </div>
+
           <!-- Alerta de rechazo -->
           <div class="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-400 p-4 rounded">
             <div class="flex">
@@ -242,11 +258,15 @@ function close() {
               v-model="form.tipo"
               class="w-full mt-1 border-gray-300 dark:border-gray-700 dark:bg-slate-800 dark:text-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               required
+              :disabled="isCompensacion"
             >
               <option value="horas">Por Horas</option>
               <option value="dias">Por Días</option>
             </select>
             <InputError :message="form.errors.tipo" class="mt-1" />
+            <p v-if="isCompensacion" class="text-xs text-blue-600 dark:text-blue-400 mt-1">
+              Los permisos de compensación solo pueden ser por horas.
+            </p>
           </div>
 
           <!-- Campos HORAS -->
@@ -271,6 +291,12 @@ function close() {
             <p class="text-xs text-gray-500 dark:text-gray-400">
               La fecha de inicio será usada como fecha del permiso por horas
             </p>
+            
+            <!-- Mensaje de error de horas insuficientes -->
+            <div v-if="isCompensacion && !tieneHorasSuficientes" class="text-sm text-red-600 dark:text-red-400">
+              <Icon name="ExclamationCircleIcon" class="w-4 h-4 inline mr-1" />
+              No tienes suficientes horas disponibles.
+            </div>
           </template>
 
           <!-- Campos DÍAS -->
@@ -324,7 +350,7 @@ function close() {
           Cancelar
         </SecondaryButton>
         <PrimaryButton 
-          :disabled="form.processing" 
+          :disabled="form.processing || (isCompensacion && !tieneHorasSuficientes)" 
           class="bg-orange-500 hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-700"
         >
           <Icon

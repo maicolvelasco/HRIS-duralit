@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Overtime;
 use App\Models\GroupManager;
+use App\Models\Compensation; // ← Importar el modelo
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB; // ← Importar DB para transacciones
 use Inertia\Inertia;
 
 class OvertimeController extends Controller
@@ -12,7 +14,6 @@ class OvertimeController extends Controller
     /* ---------- Listar ---------- */
     public function index()
     {
-        // Obtener IDs de usuarios bajo el jefe logueado
         $subordinateIds = [];
         $isManager = false;
         
@@ -22,16 +23,13 @@ class OvertimeController extends Controller
             $subordinateIds = $manager->group->users()->pluck('id')->toArray();
         }
 
-        // Sobretiempos del usuario logueado
         $rows = Overtime::with('user:id,codigo,nombre,apellido')
                         ->where('user_id', auth()->id())
                         ->orderByDesc('fecha')
                         ->get();
 
-        // Sumar solo horas con estado 'Disponible'
-        $totalDisponible = $rows->where('estado', 'Aprobado')->sum('contador');
+        $totalDisponible = auth()->user()->compensations()->sum('quantity');
 
-        // Sobretiempos de subordinados (para vista de jefe)
         $subordinatesOvertimes = [];
         if ($isManager) {
             $subordinatesOvertimes = Overtime::with('user:id,codigo,nombre,apellido')
@@ -73,10 +71,10 @@ class OvertimeController extends Controller
                          ->with('success', 'Sobretiempo registrado correctamente.');
     }
 
-    /* ---------- NUEVO: Actualizar estado (solo jefe) ---------- */
+    /* ---------- Actualizar estado (solo jefe) ---------- */
     public function updateStatus(Request $request, Overtime $overtime)
     {
-        // Verificar que el usuario logueado sea jefe del usuario dueño del registro
+        // Verificar que el usuario logueado sea jefe del dueño del registro
         $manager = GroupManager::where('user_id', auth()->id())->first();
         
         if (!$manager || !$manager->group->users()->where('id', $overtime->user_id)->exists()) {
@@ -87,7 +85,33 @@ class OvertimeController extends Controller
             'estado' => 'required|in:Pendiente,Aprobado'
         ]);
 
-        $overtime->update(['estado' => $request->estado]);
+        // Si ya está aprobado, no hacer nada
+        if ($overtime->estado === 'Aprobado') {
+            return redirect()->back()->with('info', 'El sobretiempo ya estaba aprobado.');
+        }
+
+        // Verificar que no exista compensación previa (evitar duplicados)
+        if ($request->estado === 'Aprobado') {
+            $existingCompensation = Compensation::where('overtime_id', $overtime->id)->exists();
+            
+            if ($existingCompensation) {
+                return redirect()->back()->with('error', 'Ya existe una compensación para este sobretiempo.');
+            }
+        }
+
+        // Transacción para asegurar consistencia
+        DB::transaction(function () use ($request, $overtime) {
+            // Actualizar estado
+            $overtime->update(['estado' => $request->estado]);
+
+            // Si se aprueba, crear compensación
+            if ($request->estado === 'Aprobado') {
+                Compensation::create([
+                    'overtime_id' => $overtime->id,
+                    'quantity' => $overtime->contador,
+                ]);
+            }
+        });
 
         return redirect()->back()->with('success', 'Estado actualizado correctamente.');
     }
@@ -95,7 +119,6 @@ class OvertimeController extends Controller
     /* ---------- Vista de Sobretiempos del Equipo ---------- */
     public function team()
     {
-        // Verificar si el usuario logueado es jefe
         $manager = GroupManager::where('user_id', auth()->id())->first();
         
         if (!$manager) {
@@ -103,20 +126,15 @@ class OvertimeController extends Controller
                 ->with('error', 'No tienes permiso para ver esta sección.');
         }
 
-        // IDs de subordinados
         $subordinateIds = $manager->group->users()->pluck('id')->toArray();
         
-        // ✅ TRAE TODOS los sobretiempos del equipo (sin filtrar por estado)
         $subordinatesOvertimes = Overtime::with('user:id,codigo,nombre,apellido')
-            ->whereIn('user_id', $subordinateIds) // Quita: ->where('estado', 'Pendiente')
-            ->orderByRaw("CASE WHEN estado = 'Pendiente' THEN 1 ELSE 2 END") // Pendientes primero
+            ->whereIn('user_id', $subordinateIds)
+            ->orderByRaw("CASE WHEN estado = 'Pendiente' THEN 1 ELSE 2 END")
             ->orderByDesc('fecha')
             ->get();
 
-        // Horas disponibles del usuario logueado
-        $totalDisponible = Overtime::where('user_id', auth()->id())
-            ->where('estado', 'Aprobado')
-            ->sum('contador');
+        $totalDisponible = auth()->user()->compensations()->sum('quantity');
 
         return Inertia::render('Overtime/Team', [
             'totalDisponible' => $totalDisponible,

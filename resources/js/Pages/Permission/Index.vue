@@ -8,8 +8,10 @@ import PermissionEditModal from '@/Components/PermissionEditModal.vue';
 
 const props = defineProps({
     permissions: Object,
+    filters: Object,
     authorizations: Array,
     titulations: Array,
+    horasDisponibles: Number,
 });
 
 const user = computed(() => usePage().props.auth.user);
@@ -269,6 +271,7 @@ const userName = computed(() => {
             :show="showModal"
             :authorizations="authorizations"
             :user-name="userName"
+            :horasDisponibles="horasDisponibles"
             @close="showModal = false"
         />
 
@@ -277,6 +280,7 @@ const userName = computed(() => {
             :show="showEditModal"
             :permission="editingPermission"
             :authorizations="authorizations"
+            :horas-disponibles="horasDisponibles"
             @close="showEditModal = false"
         />
     </AuthenticatedLayout>

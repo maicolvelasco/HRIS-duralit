@@ -6,16 +6,15 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany; // ← Importar
 
 class Overtime extends Model
 {
     use HasFactory, HasUuids;
 
-    /* ---------- constantes para los estados ---------- */
     public const PENDIENTE = 'Pendiente';
     public const APROBADO  = 'Aprobado';
     public const USADO     = 'Usado';
-
     public const ESTADOS = [self::PENDIENTE, self::APROBADO, self::USADO];
 
     protected $table = 'overtimes';
@@ -39,13 +38,17 @@ class Overtime extends Model
         'hasta' => 'datetime:H:i',
     ];
 
-    /* ---------- relaciones ---------- */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /* ---------- scopes de estado (opcional) ---------- */
+    // RELACIÓN NUEVA: Un overtime tiene muchas compensaciones
+    public function compensations(): HasMany
+    {
+        return $this->hasMany(Compensation::class);
+    }
+
     public function scopePendiente($query) { return $query->where('estado', self::PENDIENTE); }
     public function scopeAprobado($query)  { return $query->where('estado', self::APROBADO); }
     public function scopeUsado($query)     { return $query->where('estado', self::USADO); }

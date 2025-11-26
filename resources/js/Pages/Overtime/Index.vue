@@ -115,8 +115,6 @@ function badgeColor(estado) {
           </div>
         </div>
 
-        <!-- ⭐️ ELIMINADO: Toda la sección de Sobretiempos del Equipo -->
-
       </div>
     </div>
 

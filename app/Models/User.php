@@ -7,6 +7,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -120,5 +122,16 @@ class User extends Authenticatable
     public function permissionRequests()
     {
         return $this->hasMany(PermissionRequest::class);
+    }
+
+    public function vacations()
+    {
+        return $this->hasMany(Vacation::class);
+    }
+
+    // Opcional: acceso directo a compensaciones a través de horas extras
+    public function compensations()
+    {
+        return $this->hasManyThrough(Compensation::class, Overtime::class);
     }
 }
