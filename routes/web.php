@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AssistanceController;
 use App\Http\Controllers\HolidayController;
+use App\Http\Controllers\HrManagerController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -85,6 +86,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/assistances', [AssistanceController::class, 'index'])->name('assistances.index');
     Route::post('/assistances/entrada-manual', [AssistanceController::class, 'storeEntradaManual'])->name('assistances.entrada.manual');
     Route::patch('/assistances/{assistance}/salida-manual', [AssistanceController::class, 'storeSalidaManual'])->name('assistances.salida.manual');
+
+    Route::get('/rrhh', [HrManagerController::class, 'index'])->name('rrhh.index');
+    Route::post('/rrhh', [HrManagerController::class, 'store'])->name('rrhh.store');
+    Route::put('/rrhh', [HrManagerController::class, 'update'])->name('rrhh.update');
+
+    Route::prefix('group-managers')->name('group-managers.')->group(function () {
+        Route::post('/assign', [HrManagerController::class, 'assignManager'])->name('assign');
+        Route::post('/change', [HrManagerController::class, 'changeManager'])->name('change');
+        Route::post('/remove-user', [HrManagerController::class, 'removeUserFromGroup'])->name('remove-user');
+        Route::post('/add-users', [HrManagerController::class, 'addUsersByFilter'])->name('add-users');
+    });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

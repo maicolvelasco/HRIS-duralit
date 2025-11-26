@@ -68,7 +68,9 @@ async function logout() {
                 <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
                   Dashboard
                 </NavLink>
-
+                <NavLink :href="route('rrhh.index')" :active="route().current('rrhh.index')">
+                  Control
+                </NavLink>
                 <NavLink :href="route('assistances.index')" :active="route().current('assistances.index')">
                   Asistencia
                 </NavLink>
@@ -202,6 +204,9 @@ async function logout() {
         <nav class="mt-3 space-y-1 px-4">
           <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')">
             Dashboard
+          </ResponsiveNavLink>
+          <ResponsiveNavLink :href="route('rrhh.index')" :active="route().current('rrhh.index')">
+            Control
           </ResponsiveNavLink>
           <ResponsiveNavLink :href="route('assistances.index')" :active="route().current('assistances.index')">
             Asistencia

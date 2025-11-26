@@ -103,4 +103,17 @@ class User extends Authenticatable
     {
         return $this->hasMany(Assistance::class);
     }
+
+    public function groupManager()
+    {
+        return $this->hasOne(GroupManager::class, 'user_id');
+    }
+
+    /**
+     * Relación: si este usuario es el encargado de RRHH.
+     */
+    public function hrManager()
+    {
+        return $this->hasOne(HrManager::class, 'user_id');
+    }
 }
