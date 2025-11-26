@@ -15,6 +15,8 @@ class HrManagerController extends Controller
 {
     public function index()
     {
+        abort_unless(auth()->user()->canDo('Control de Jerarquia'), 403, 'No tienes permiso para acceder a esta sección.');
+
         $hrUserId = HrManager::with('user')->first()?->user_id;
 
         // ✅ Jefes actuales
@@ -39,6 +41,10 @@ class HrManagerController extends Controller
         $branches = Branch::select('id', 'nombre')->get();
         $sections = Section::select('id', 'nombre')->get();
 
+        // Obtener permisos del usuario autenticado
+        $authUser = auth()->user()->load('permissions'); // carga la relación
+        $authUserPermissions = $authUser->permissions->pluck('nombre'); // solo los nombres
+
         return Inertia::render('HrManager/Index', [
             'hrManager' => HrManager::with('user')->first(),
             'users' => $allUsers,
@@ -47,6 +53,13 @@ class HrManagerController extends Controller
             'groups' => $groups,
             'branches' => $branches,
             'sections' => $sections,
+
+                'auth' => [
+                'user' => [
+                    ...$authUser->only(['id', 'nombre', 'apellido', 'codigo', 'foto']),
+                    'permissions' => $authUserPermissions,
+                ],
+            ],
         ]);
     }
 

@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { ref } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Icon from '@/Components/Icon.vue';
 import CreateHrManagerModal from '@/Components/CreateHrManagerModal.vue';
@@ -42,6 +42,11 @@ const filteredManagers = computed(() =>
     `${m.user.nombre} ${m.user.apellido} ${m.user.codigo}`.toLowerCase().includes(searchManagers.value.toLowerCase())
   )
 );
+
+const user = usePage().props.auth.user;
+if (!user.permissions?.includes?.('Control de Jerarquia')) {
+  throw new Error('Acceso denegado');
+}
 </script>
 
 <template>

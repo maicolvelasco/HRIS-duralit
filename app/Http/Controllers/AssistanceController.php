@@ -15,13 +15,37 @@ class AssistanceController extends Controller
 {
     public function index(Request $request)
     {
-        $assistances = Assistance::with(['user', 'affirmation'])
-            ->latest()
-            ->paginate(20);
+        $user = auth()->user();
+
+        // ✅ Control de Asistencia Propio: solo sus registros
+        if ($user->canDo('Control de Asistencia Propio')) {
+            $assistances = Assistance::with(['user', 'affirmation'])
+                ->where('user_id', $user->id)
+                ->latest()
+                ->paginate(20);
+        }
+        // ✅ Control de Asistencia: todos los registros
+        elseif ($user->canDo('Control de Asistencia')) {
+            $assistances = Assistance::with(['user', 'affirmation'])
+                ->latest()
+                ->paginate(20);
+        }
+        // ❌ Sin permiso: tabla vacía
+        else {
+            $assistances = Assistance::with(['user', 'affirmation'])
+                ->whereRaw('1 = 0')
+                ->paginate(20);
+        }
 
         return Inertia::render('Assistance/Index', [
             'assistances' => $assistances,
-            'users' => User::select('id', 'nombre', 'apellido', 'codigo')->get(),
+            'users' => $user->canDo('Control de Asistencia') ? User::select('id', 'nombre', 'apellido', 'codigo')->get() : [],
+            'permissions' => [
+                'Control de Asistencia' => $user->canDo('Control de Asistencia'),
+                'Registro de Entrada' => $user->canDo('Registro de Entrada'),
+                'Registro de Salida' => $user->canDo('Registro de Salida'),
+                'Control de Asistencia Propio' => $user->canDo('Control de Asistencia Propio'),
+            ],
         ]);
     }
 

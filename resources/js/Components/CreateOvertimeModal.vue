@@ -13,17 +13,17 @@ import Icon from '@/Components/Icon.vue';
 defineProps({ show: { type: Boolean, default: false } });
 const emit = defineEmits(['close']);
 
-const user = usePage().props.auth.user;          // usuario logueado
+const user = usePage().props.auth.user;
 
 /* ------------- form ------------- */
 const form = useForm({
-  user_id: user.id,   // fijo
-  fecha: new Date().toISOString().slice(0,10),  // hoy
+  user_id: user.id,
+  fecha: new Date().toISOString().slice(0,10),
   desde: '',
   hasta: '',
-  contador: 0,        // se calcula
+  contador: 0,
   trabajo: '',
-  estado: 'Pendiente', // siempre
+  estado: 'Pendiente',
 });
 
 /* ------------- calcular horas ------------- */
@@ -34,9 +34,8 @@ const calcularHoras = () => {
   const minDesde = hd * 60 + md;
   const minHasta = hh * 60 + mh;
   const diff = minHasta >= minDesde ? minHasta - minDesde : (minHasta + 24*60) - minDesde;
-  form.contador = Math.round(diff / 60 * 100) / 100; // decimales
+  form.contador = Math.round(diff / 60 * 100) / 100;
 };
-// recalcular cuando cambien las horas
 watch([() => form.desde, () => form.hasta], calcularHoras);
 
 /* ------------- submit ------------- */
@@ -62,6 +61,9 @@ function close() {
           <Icon name="ClockIcon" class="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
           Registrar Sobre Tiempo
         </h3>
+        <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+          {{ user.codigo }} - {{ user.nombre }} {{ user.apellido }}
+        </span>
       </div>
 
       <!-- body -->
@@ -69,7 +71,7 @@ function close() {
         <!-- Usuario (solo lectura) -->
         <div>
           <InputLabel value="Usuario" />
-          <TextInput :value="`${user.nombre} ${user.apellido}`" class="w-full mt-1" disabled />
+          <TextInput :value="`${user.codigo} - ${user.nombre} ${user.apellido}`" class="w-full mt-1" disabled />
         </div>
 
         <!-- Fecha -->

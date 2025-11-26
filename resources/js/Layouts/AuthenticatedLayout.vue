@@ -16,6 +16,10 @@ import FlashMessage from '@/Components/FlashMessage.vue';
 
 const user = usePage().props.auth.user;
 
+console.log('Usuario:', user);
+console.log('Permisos reales:', user.permissions);
+console.log('¿Incluye Control de Jerarquia?', user.permissions?.includes?.('Control de Jerarquia'));
+
 const showingSidebar = ref(false);
 
 async function logout() {
@@ -68,10 +72,18 @@ async function logout() {
                 <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
                   Dashboard
                 </NavLink>
-                <NavLink :href="route('rrhh.index')" :active="route().current('rrhh.index')">
+                <NavLink
+                  v-if="user.permissions?.includes?.('Control de Jerarquia')"
+                  :href="route('rrhh.index')"
+                  :active="route().current('rrhh.index')"
+                >
                   Control
                 </NavLink>
-                <NavLink :href="route('assistances.index')" :active="route().current('assistances.index')">
+                <NavLink
+                  v-if="user.permissions?.includes?.('Control de Asistencia') || user.permissions?.includes?.('Control de Asistencia Propio')"
+                  :href="route('assistances.index')"
+                  :active="route().current('assistances.index')"
+                >
                   Asistencia
                 </NavLink>
                 <NavLink :href="route('overtimes.index')" :active="route().current('overtimes.index')">
@@ -208,7 +220,11 @@ async function logout() {
           <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')">
             Dashboard
           </ResponsiveNavLink>
-          <ResponsiveNavLink :href="route('rrhh.index')" :active="route().current('rrhh.index')">
+          <ResponsiveNavLink
+            v-if="user.permissions?.includes?.('Control de Jerarquia')"
+            :href="route('rrhh.index')"
+            :active="route().current('rrhh.index')"
+          >
             Control
           </ResponsiveNavLink>
           <ResponsiveNavLink :href="route('assistances.index')" :active="route().current('assistances.index')">
