@@ -1,59 +1,167 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Manual de instalación
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Este documento describe los pasos necesarios para instalar y poner en funcionamiento la aplicación en un entorno de desarrollo o producción. Está orientado a administradores y personal de TI. Se incluyen instrucciones específicas para Windows (PowerShell) y opciones para Linux/WSL cuando procede.
 
-## About Laravel
+## 1. Requisitos previos
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Hardware y sistema
+- Servidor o máquina con Windows 10/11, Windows Server o Linux (Ubuntu / CentOS).
+- Recomendado: 4+ GB RAM, disco según volumen de datos.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Software
+- PHP 8.0+ con extensiones: pdo, pdo_mysql (o pdo_pgsql), mbstring, openssl, tokenizer, xml, ctype, json, fileinfo, bcmath, curl, zip, gd (según funciones).
+- Composer (gestor de dependencias PHP).
+- Node.js >= 16 y npm o Yarn.
+- Base de datos: MySQL 5.7+/8.0, MariaDB o PostgreSQL (según configuración).
+- Servidor web para producción: Nginx o Apache (en Windows puede usarse IIS, XAMPP o WAMP).
+- Git (opcional, para clonar repositorios).
+- Opcional en Windows: WSL2 para entorno Linux, útil para despliegues.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Permisos y servicios
+- Cuenta con permisos para crear bases de datos y modificar configuraciones en el servidor web.
+- Acceso a credenciales SMTP si se usan notificaciones por correo.
 
-## Learning Laravel
+## 2. Preparación del entorno (Windows — PowerShell)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+1. Abrir PowerShell como administrador.
+2. Ir a la carpeta del proyecto:
+   ```
+   cd "c:\Proyectos\controlt"
+   ```
+3. Confirmar versión de PHP y Composer:
+   ```
+   php -v
+   composer -V
+   node -v
+   npm -v
+   ```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Si se usan WSL, ejecutar los pasos equivalentes dentro de la distribución Linux.
 
-## Laravel Sponsors
+## 3. Instalar dependencias PHP y Node
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+1. Instalar dependencias PHP:
+   ```
+   composer install
+   ```
+   - Para producción: `composer install --no-dev --optimize-autoloader`
 
-### Premium Partners
+2. Instalar dependencias Node:
+   ```
+   npm install
+   ```
+   - O con Yarn:
+   ```
+   yarn
+   ```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+3. Construir assets (desarrollo):
+   ```
+   npm run dev
+   ```
+   - Para producción/build optimizado:
+   ```
+   npm run build
+   ```
 
-## Contributing
+## 4. Configuración de variables de entorno
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+1. Copiar el archivo de ejemplo:
+   ```
+   copy .env.example .env
+   ```
+   (En PowerShell: `Copy-Item .env.example .env`)
 
-## Code of Conduct
+2. Editar `.env` y configurar:
+   - APP_NAME, APP_ENV, APP_URL
+   - DB_CONNECTION, DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD
+   - MAIL_*, si se requiere envío de correos
+   - Otros parámetros según integración (LDAP, terceros, etc.)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+3. Generar la clave de la aplicación:
+   ```
+   php artisan key:generate
+   ```
 
-## Security Vulnerabilities
+## 5. Base de datos y migraciones
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+1. Crear la base de datos en el servidor MySQL/MariaDB/Postgres.
+2. Ejecutar migraciones y seeders (crear tablas y datos iniciales):
+   ```
+   php artisan migrate --seed
+   ```
+   - En desarrollo puede usarse `php artisan migrate:fresh --seed` (elimina datos previos).
 
-## License
+Nota: Para entornos productivos ejecute migraciones después de respaldar la BD y en una ventana de mantenimiento si procede.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 6. Archivos y permisos
+
+1. Crear enlace público a almacenamiento:
+   ```
+   php artisan storage:link
+   ```
+2. Asegurar permisos de escritura en:
+   - storage/
+   - bootstrap/cache/
+   En Windows, comprobar que la cuenta del IIS o del servidor web tenga permisos. En Linux:
+   ```
+   sudo chown -R www-data:www-data storage bootstrap/cache
+   sudo chmod -R 755 storage bootstrap/cache
+   ```
+
+## 7. Configuración del servidor web
+
+Desarrollo (servidor integrado)
+- Ejecutar servidor de desarrollo:
+  ```
+  php artisan serve
+  ```
+  Acceder en: http://localhost:8000
+
+## 8. Tareas programadas y workers
+
+- Scheduler (Laravel): en Linux agregar cron:
+  ```
+  * * * * * cd /ruta/al/proyecto && php artisan schedule:run >> /dev/null 2>&1
+  ```
+  En Windows use el Programador de tareas para ejecutar `php artisan schedule:run` cada minuto.
+
+- Workers de cola: en producción ejecutar supervisord o un servicio que mantenga `php artisan queue:work` en ejecución. En Windows, se puede usar NSSM o crear un servicio.
+
+## 9. Desarrollo y pruebas locales
+
+- Crear usuario administrador (según seeders o comando específico del proyecto).
+- Acceder a la URL, iniciar sesión y verificar módulos (Personas, Roles, Asistencias, Reportes).
+- Probar generación de PDFs/Excel y funcionalidades de subida/descarga.
+
+## 10. Checklist previo a producción
+
+- .env configurado (APP_ENV=production, APP_DEBUG=false).
+- APP_KEY generado.
+- Backups de la base de datos antes de migraciones.
+- Certificado TLS configurado (HTTPS).
+- Permisos y propiedad de archivos correctos.
+- Jobs y scheduler configurados.
+- Monitoreo y logging activados (logs rotados).
+- Revisión de dependencias y actualizaciones de seguridad.
+
+## 11. Resolución de problemas comunes
+
+- Error de extensiones PHP: activar extensiones requeridas en php.ini y reiniciar el servicio PHP-FPM/IIS.
+- Permisos de almacenamiento: comprobar que storage/ y bootstrap/cache/ sean escribibles por el usuario del servidor web.
+- Errores en assets: ejecutar `npm run build` y limpiar caché del navegador.
+- Fallo en migraciones: revisar mensajes en consola, verificar conexión y credenciales de BD.
+
+## 12. Contacto y referencias
+
+Proporcione al equipo de soporte:
+- Ruta del repositorio y commit referenciado.
+- Contenido relevante de `.env` (sin claves privadas completas).
+- Registros de error (storage/logs/laravel.log).
+- Pasos realizados y salida de comandos fallidos.
+
+Para despliegues automatizados, se recomienda documentar scripts CI/CD que ejecuten: composer install, npm ci, npm run build, php artisan migrate --force, y reinicio de workers.
+
+---
+
+Fin del manual. Guarde este archivo como MANUAL_INSTALACION.md en la raíz del proyecto.
