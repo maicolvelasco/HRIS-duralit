@@ -7,6 +7,7 @@ use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\HrManagerController;
 use App\Http\Controllers\OvertimeController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\PayrollController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -119,6 +120,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/permissions/{permission}/update-status', [PermissionController::class, 'updateStatus'])->name('permissions.update-status');
     Route::get('/permissions/{permission}/edit', [PermissionController::class, 'edit'])->name('permissions.edit');
     Route::put('/permissions/{permission}', [PermissionController::class, 'update'])->name('permissions.update');
+
+    Route::prefix('payroll')->name('payroll.')->group(function () {
+        Route::get('/', [PayrollController::class, 'index'])->name('index');
+        Route::post('/store', [PayrollController::class, 'store'])->name('store');
+        Route::get('/{payroll}/edit', [PayrollController::class, 'edit'])->name('edit');
+        Route::put('/{payroll}', [PayrollController::class, 'update'])->name('update');
+        Route::delete('/{payroll}', [PayrollController::class, 'destroy'])->name('destroy');
+        Route::post('/{payroll}/calculate', [PayrollController::class, 'calculate'])->name('calculate');
+        Route::post('/{payroll}/approve', [PayrollController::class, 'approve'])->name('approve');
+        Route::post('/{payroll}/pay', [PayrollController::class, 'pay'])->name('pay');
+        Route::get('/{payroll}/receipt', [PayrollController::class, 'generateReceipt'])->name('receipt');
+    });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

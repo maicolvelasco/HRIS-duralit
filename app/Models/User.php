@@ -24,6 +24,8 @@ class User extends Authenticatable
         'codigo',
         'password',
         'foto',
+        'salario_base',        // <-- NUEVO CAMPO
+        'frecuencia_pago',     // <-- NUEVO CAMPO
         'is_active',
         'branch_id',
         'group_id',
@@ -41,6 +43,7 @@ class User extends Authenticatable
         return [
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'salario_base' => 'decimal:2',  // <-- CAST PARA DECIMAL
         ];
     }
 
@@ -133,5 +136,10 @@ class User extends Authenticatable
     public function compensations()
     {
         return $this->hasManyThrough(Compensation::class, Overtime::class);
+    }
+
+    public function payrolls(): HasMany
+    {
+        return $this->hasMany(Payroll::class);
     }
 }

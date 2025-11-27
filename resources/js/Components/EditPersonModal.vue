@@ -30,6 +30,8 @@ const form = useForm({
   codigo: '',
   password: '',
   foto: null,
+  salario_base: '',
+  frecuencia_pago: 'mensual',
   is_active: true,
   branch_id: null,
   group_id: null,
@@ -47,6 +49,8 @@ watch(() => props.show, (val) => {
     form.apellido = props.user.apellido;
     form.codigo = props.user.codigo;
     form.password = '';
+    form.salario_base = props.user.salario_base ?? '';
+    form.frecuencia_pago = props.user.frecuencia_pago ?? 'mensual';
     form.is_active = Boolean(props.user.is_active);
     form.branch_id = props.user.branch_id ?? null;
     form.group_id = props.user.group_id ?? null;
@@ -85,6 +89,7 @@ function close() {
     :closeable="true"
     @close="close"
     :max-width="isMobile ? 'full' : '3xl'"
+    :scrollable="true"
   >
     <form @submit.prevent="submit" class="flex flex-col h-full">
       <!-- Sticky header -->
@@ -147,6 +152,30 @@ function close() {
           </div>
         </div>
 
+        <!-- Fila 3: Salario Base y Frecuencia de Pago -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <InputLabel value="Salario Base (Bs)" />
+            <TextInput 
+              type="number" 
+              step="0.01" 
+              min="0" 
+              v-model="form.salario_base" 
+              class="w-full mt-1" 
+              placeholder="Ej. 5500.00"
+            />
+            <InputError :message="form.errors.salario_base" />
+          </div>
+          <div>
+            <InputLabel value="Frecuencia de Pago" />
+            <select v-model="form.frecuencia_pago" class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-slate-800 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+              <option value="mensual">Mensual</option>
+              <option value="quincenal">Quincenal</option>
+            </select>
+            <InputError :message="form.errors.frecuencia_pago" />
+          </div>
+        </div>
+
         <!-- Foto -->
         <div>
           <InputLabel value="Foto (opcional)" />
@@ -169,7 +198,7 @@ function close() {
             v-model="form.branch_id"
             :error="form.errors.branch_id"
             placeholder="Buscar sucursal..."
-            :clearable="true"
+            clearable
           />
           <SearchSelect
             label="Rol"
@@ -177,11 +206,11 @@ function close() {
             v-model="form.rol_id"
             :error="form.errors.rol_id"
             placeholder="Buscar rol..."
-            :clearable="true"
+            clearable
           />
         </div>
 
-        <!-- Grupo y Sección en la misma fila en PC -->
+        <!-- Grupo y Sección -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <SearchSelect
             label="Grupo"

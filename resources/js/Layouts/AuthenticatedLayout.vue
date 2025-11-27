@@ -107,6 +107,13 @@ async function logout() {
                 >
                   P. de Grupo
                 </NavLink>
+                <NavLink 
+                  v-if="user.permissions?.includes?.('Ver Nóminas')"
+                  :href="route('payroll.index')"
+                  :active="route().current('payroll.index')"
+                >
+                  Nóminas
+                </NavLink>
               </div>
             </div>
 
@@ -271,6 +278,13 @@ async function logout() {
             :active="route().current('permissions.team')"
           >
             P. de Grupo
+          </ResponsiveNavLink>
+          <ResponsiveNavLink 
+            v-if="user.permissions?.includes?.('Ver Nóminas')"
+            :href="route('payroll.index')"
+            :active="route().current('payroll.index')"
+          >
+            Nóminas
           </ResponsiveNavLink>
         </nav>
       </div>

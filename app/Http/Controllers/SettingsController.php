@@ -23,187 +23,185 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class SettingsController extends Controller
 {
-public function index()
-{
-    $user = auth()->user();
-    
-    $canViewUsers = $user->canDo('Ver Usuarios');
-    $canCreateUsers = $user->canDo('Crear Usuarios');
-    $canEditUsers = $user->canDo('Modificar Usuarios');
-    $canViewRoles = $user->canDo('Ver Roles');
-    $canCreateRoles = $user->canDo('Crear Roles');
-    $canEditRoles = $user->canDo('Modificar Roles');
-    $canViewPermisos = $user->canDo('Ver Permisos');
-    $canCreatePermisos = $user->canDo('Crear Permisos');
-    $canEditPermisos = $user->canDo('Modificar Permisos');
-    $canViewPersonal   = $user->canDo('Ver Permisos Personales');
-    $canEnablePersonal = $user->canDo('Activar Permisos Personales');
-    $canDisablePersonal= $user->canDo('Desactivar Permisos Personales');
-    $canViewSucursales = $user->canDo('Ver Sucursales');
-    $canCreateSucursales = $user->canDo('Crear Sucursales');
-    $canEditSucursales = $user->canDo('Modificar Sucursales');
-    $canViewGrupos = $user->canDo('Ver Grupos');
-    $canCreateGrupos = $user->canDo('Crear Grupos');
-    $canEditGrupos = $user->canDo('Modificar Grupos');
-    $canViewSecciones = $user->canDo('Ver Secciones');
-    $canCreateSecciones = $user->canDo('Crear Secciones');
-    $canEditSecciones = $user->canDo('Modificar Secciones');
-    $canViewTurnos = $user->canDo('Ver Turnos');
-    $canCreateTurnos = $user->canDo('Crear Turnos');
-    $canEditTurnos = $user->canDo('Modificar Turnos');
-    $canViewFeriados = $user->canDo('Ver Feriados');
-    $canCreateFeriados = $user->canDo('Crear Feriados');
-    $canEditFeriados = $user->canDo('Modificar Feriados');
-    $canDeleteFeriados = $user->canDo('Eliminar Feriados');
-    $canViewAuths   = $user->canDo('Ver Permisos de Trabajo');
-    $canCreateAuths = $user->canDo('Crear Permisos de Trabajo');
-    $canEditAuths   = $user->canDo('Modificar Permisos de Trabajo');
-    $canViewReportes   = $user->canDo('Ver Reportes');
-    $candownloadExcel = $user->canDo('Descargar Reportes Excel');
-    $candownloadPDF = $user->canDo('Descargar Reportes PDF');
+    public function index()
+    {
+        $user = auth()->user();
+        
+        $canViewUsers = $user->canDo('Ver Usuarios');
+        $canCreateUsers = $user->canDo('Crear Usuarios');
+        $canEditUsers = $user->canDo('Modificar Usuarios');
+        $canViewRoles = $user->canDo('Ver Roles');
+        $canCreateRoles = $user->canDo('Crear Roles');
+        $canEditRoles = $user->canDo('Modificar Roles');
+        $canViewPermisos = $user->canDo('Ver Permisos');
+        $canCreatePermisos = $user->canDo('Crear Permisos');
+        $canEditPermisos = $user->canDo('Modificar Permisos');
+        $canViewPersonal   = $user->canDo('Ver Permisos Personales');
+        $canEnablePersonal = $user->canDo('Activar Permisos Personales');
+        $canDisablePersonal= $user->canDo('Desactivar Permisos Personales');
+        $canViewSucursales = $user->canDo('Ver Sucursales');
+        $canCreateSucursales = $user->canDo('Crear Sucursales');
+        $canEditSucursales = $user->canDo('Modificar Sucursales');
+        $canViewGrupos = $user->canDo('Ver Grupos');
+        $canCreateGrupos = $user->canDo('Crear Grupos');
+        $canEditGrupos = $user->canDo('Modificar Grupos');
+        $canViewSecciones = $user->canDo('Ver Secciones');
+        $canCreateSecciones = $user->canDo('Crear Secciones');
+        $canEditSecciones = $user->canDo('Modificar Secciones');
+        $canViewTurnos = $user->canDo('Ver Turnos');
+        $canCreateTurnos = $user->canDo('Crear Turnos');
+        $canEditTurnos = $user->canDo('Modificar Turnos');
+        $canViewFeriados = $user->canDo('Ver Feriados');
+        $canCreateFeriados = $user->canDo('Crear Feriados');
+        $canEditFeriados = $user->canDo('Modificar Feriados');
+        $canDeleteFeriados = $user->canDo('Eliminar Feriados');
+        $canViewAuths   = $user->canDo('Ver Permisos de Trabajo');
+        $canCreateAuths = $user->canDo('Crear Permisos de Trabajo');
+        $canEditAuths   = $user->canDo('Modificar Permisos de Trabajo');
+        $canViewReportes   = $user->canDo('Ver Reportes');
+        $candownloadExcel = $user->canDo('Descargar Reportes Excel');
+        $candownloadPDF = $user->canDo('Descargar Reportes PDF');
 
-    // Cargar usuarios con permisos DIRECTOS (solo granted = true)
-    $usersWithPermissions = [];
-    if ($canViewUsers) {
-        $usersWithPermissions = User::with(['permissions' => function($query) {
-            $query->select('permissions.id', 'permissions.nombre', 'permissions.descripcion')
-                  ->wherePivot('granted', true); // Solo permisos activos en la relación
+        // Cargar usuarios con permisos DIRECTOS (solo granted = true)
+        $usersWithPermissions = [];
+        if ($canViewUsers) {
+            $usersWithPermissions = User::with(['permissions' => function($query) {
+                $query->select('permissions.id', 'permissions.nombre', 'permissions.descripcion')
+                    ->wherePivot('granted', true);
+            }])
+            ->select('id', 'nombre', 'apellido', 'codigo', 'is_active', 'branch_id', 'group_id', 'section_id', 'rol_id', 'foto', 'salario_base', 'frecuencia_pago')
+            ->orderBy('nombre')
+            ->get();
+
+            // Para cada usuario, cargar IDs de permisos NEGADOS (granted = false)
+            foreach ($usersWithPermissions as $u) {
+                $u->denied_permission_ids = \DB::table('users_permissions')
+                    ->where('user_id', $u->id)
+                    ->where('granted', false)
+                    ->pluck('permission_id')
+                    ->toArray();
+            }
+        }
+
+        // Cargar roles CON sus permisos para verificar herencia
+        $roles = Rol::with(['permissions' => function($q) {
+            $q->select('permissions.id', 'permissions.nombre');
         }])
-        ->select('id', 'nombre', 'apellido', 'codigo', 'is_active', 'branch_id', 'group_id', 'section_id', 'rol_id', 'foto')
+        ->select('id', 'nombre', 'descripcion')
         ->orderBy('nombre')
         ->get();
 
-        // ✅ NUEVO: Para cada usuario, cargar IDs de permisos NEGADOS (granted = false)
-        foreach ($usersWithPermissions as $u) {
-            $u->denied_permission_ids = \DB::table('users_permissions')
-                ->where('user_id', $u->id)
-                ->where('granted', false)
-                ->pluck('permission_id')
-                ->toArray();
+        // Cargar turnos con TODAS las relaciones necesarias
+        $shifts = [];
+        if ($canViewTurnos) {
+            $shifts = Shift::with([
+                    'schedules',
+                    'users',
+                    'branches',
+                    'groups',
+                    'sections',
+                    'roles'
+                ])
+                ->orderBy('nombre')
+                ->get();
         }
-    }
 
-    // ✅ IMPORTANTE: Cargar roles CON sus permisos para verificar herencia
-    $roles = Rol::with(['permissions' => function($q) {
-        $q->select('permissions.id', 'permissions.nombre');
-    }])
-    ->select('id', 'nombre', 'descripcion')
-    ->orderBy('nombre')
-    ->get();
+        $locations = $this->getNestedLocations();
 
-    // ✅ Cargar turnos con TODAS las relaciones necesarias
-    $shifts = [];
-    if ($canViewTurnos) {
-        $shifts = Shift::with([
-                'schedules',
-                'users',
-                'branches',
-                'groups',
-                'sections',
-                'roles'
-            ])
-            ->orderBy('nombre')
-            ->get();
-    }
-
-    $locations = $this->getNestedLocations();
-
-    return Inertia::render('Settings', [
-        'users' => $canViewUsers ? User::select('id', 'nombre', 'apellido', 'codigo', 'is_active', 'branch_id', 'group_id', 'section_id', 'rol_id', 'foto')
-                       ->orderBy('nombre')
-                       ->get() : [],
-        
-        'usersWithPermissions' => $usersWithPermissions,
-        'allPermissions' => Permission::select('id', 'nombre', 'descripcion')
-                            ->orderBy('nombre')
-                            ->get(),
-        
-        'branches' => Branch::select('id', 'nombre', 'departamento', 'provincia', 'localidad')
-                       ->orderBy('nombre')
-                       ->get(),
-        'groups'   => Group::select('id', 'nombre', 'descripcion')
-                       ->orderBy('nombre')
-                       ->get(),
-        'sections' => Section::select('id', 'nombre', 'descripcion')
-                       ->orderBy('nombre')
-                       ->get(),
+        return Inertia::render('Settings', [
+            'users' => $canViewUsers ? User::select('id', 'nombre', 'apellido', 'codigo', 'is_active', 'branch_id', 'group_id', 'section_id', 'rol_id', 'foto', 'salario_base', 'frecuencia_pago')
+                        ->orderBy('nombre')
+                        ->get() : [],
             
-        $authorizations = $canViewAuths
-            ? Authorization::with([
-                'roles:id',
-                'titulations' => function($query) {
-                    $query->select('id', 'nombre', 'descripcion');
-                },
-                'titulations.roles:id,nombre' // Carga los roles de cada titulation
-            ])
-            ->select('id', 'nombre', 'descripcion')
-            ->orderBy('nombre')
-            ->get()
-            : collect(),
+            'usersWithPermissions' => $usersWithPermissions,
+            'allPermissions' => Permission::select('id', 'nombre', 'descripcion')
+                                ->orderBy('nombre')
+                                ->get(),
+            
+            'branches' => Branch::select('id', 'nombre', 'departamento', 'provincia', 'localidad')
+                        ->orderBy('nombre')
+                        ->get(),
+            'groups'   => Group::select('id', 'nombre', 'descripcion')
+                        ->orderBy('nombre')
+                        ->get(),
+            'sections' => Section::select('id', 'nombre', 'descripcion')
+                        ->orderBy('nombre')
+                        ->get(),
+                
+            $authorizations = $canViewAuths
+                ? Authorization::with([
+                    'roles:id',
+                    'titulations' => function($query) {
+                        $query->select('id', 'nombre', 'descripcion');
+                    },
+                    'titulations.roles:id,nombre'
+                ])
+                ->select('id', 'nombre', 'descripcion')
+                ->orderBy('nombre')
+                ->get()
+                : collect(),
 
-        $titulations = $canViewAuths
-            ? Titulation::select('id', 'nombre')->orderBy('nombre')->get()
-            : collect(),
+            $titulations = $canViewAuths
+                ? Titulation::select('id', 'nombre')->orderBy('nombre')->get()
+                : collect(),
 
-        'shifts'   => $shifts,
+            'shifts'   => $shifts,
 
-        'locations' => $locations,
+            'locations' => $locations,
 
-        'authorizations' => $authorizations,
-        
-        'titulations' => $titulations,
+            'authorizations' => $authorizations,
+            
+            'titulations' => $titulations,
 
-        // ✅ Pasar roles con permisos a la vista
-        'roles' => $roles,
-        
-        'permissionsList' => Permission::with('roles')
-              ->select('id', 'nombre', 'descripcion')
-              ->orderBy('nombre')
-              ->get(),
-        
-        'permissions' => [
-            'Ver Usuarios' => $canViewUsers,
-            'Crear Usuarios' => $canCreateUsers,
-            'Modificar Usuarios' => $canEditUsers,
-            'Ver Roles' => $canViewRoles,
-            'Crear Roles' => $canCreateRoles,
-            'Modificar Roles' => $canEditRoles,
-            'Ver Permisos' => $canViewPermisos,
-            'Crear Permisos' => $canCreatePermisos,
-            'Modificar Permisos' => $canEditPermisos,
-            'Ver Permisos Personales' => $canViewPersonal,
-            'Activar Permisos Personales' => $canEnablePersonal,
-            'Desactivar Permisos Personales' =>$canDisablePersonal,
-            'Ver Sucursales' => $canViewSucursales,
-            'Crear Sucursales' => $canCreateSucursales,
-            'Modificar Sucursales' => $canEditSucursales,
-            'Ver Grupos' => $canViewGrupos,
-            'Crear Grupos' => $canCreateGrupos,
-            'Modificar Grupos' => $canEditGrupos,
-            'Ver Secciones' => $canViewSecciones,
-            'Crear Secciones' => $canCreateSecciones,
-            'Modificar Secciones' => $canEditSecciones,
-            'Ver Turnos' => $canViewTurnos,
-            'Crear Turnos' => $canCreateTurnos,
-            'Modificar Turnos' => $canEditTurnos,
-            'Ver Feriados' => $canViewFeriados,
-            'Crear Feriados' => $canCreateFeriados,
-            'Modificar Feriados' => $canEditFeriados,
-            'Eliminar Feriados' => $canDeleteFeriados,
-            'Ver Permisos de Trabajo' => $canViewAuths,
-            'Crear Permisos de Trabajo' => $canCreateAuths,
-            'Modificar Permisos de Trabajo' => $canEditAuths,
-            'Ver Reportes' => $canViewReportes,
-            'Descargar Reportes Excel' => $candownloadExcel,
-            'Descargar Reportes PDF' => $candownloadPDF,
-        ],
-        
-        'defaultSection' => $canViewUsers ? 'users' : 'sections',
-    ]);
-}
+            'roles' => $roles,
+            
+            'permissionsList' => Permission::with('roles')
+                ->select('id', 'nombre', 'descripcion')
+                ->orderBy('nombre')
+                ->get(),
+            
+            'permissions' => [
+                'Ver Usuarios' => $canViewUsers,
+                'Crear Usuarios' => $canCreateUsers,
+                'Modificar Usuarios' => $canEditUsers,
+                'Ver Roles' => $canViewRoles,
+                'Crear Roles' => $canCreateRoles,
+                'Modificar Roles' => $canEditRoles,
+                'Ver Permisos' => $canViewPermisos,
+                'Crear Permisos' => $canCreatePermisos,
+                'Modificar Permisos' => $canEditPermisos,
+                'Ver Permisos Personales' => $canViewPersonal,
+                'Activar Permisos Personales' => $canEnablePersonal,
+                'Desactivar Permisos Personales' =>$canDisablePersonal,
+                'Ver Sucursales' => $canViewSucursales,
+                'Crear Sucursales' => $canCreateSucursales,
+                'Modificar Sucursales' => $canEditSucursales,
+                'Ver Grupos' => $canViewGrupos,
+                'Crear Grupos' => $canCreateGrupos,
+                'Modificar Grupos' => $canEditGrupos,
+                'Ver Secciones' => $canViewSecciones,
+                'Crear Secciones' => $canCreateSecciones,
+                'Modificar Secciones' => $canEditSecciones,
+                'Ver Turnos' => $canViewTurnos,
+                'Crear Turnos' => $canCreateTurnos,
+                'Modificar Turnos' => $canEditTurnos,
+                'Ver Feriados' => $canViewFeriados,
+                'Crear Feriados' => $canCreateFeriados,
+                'Modificar Feriados' => $canEditFeriados,
+                'Eliminar Feriados' => $canDeleteFeriados,
+                'Ver Permisos de Trabajo' => $canViewAuths,
+                'Crear Permisos de Trabajo' => $canCreateAuths,
+                'Modificar Permisos de Trabajo' => $canEditAuths,
+                'Ver Reportes' => $canViewReportes,
+                'Descargar Reportes Excel' => $candownloadExcel,
+                'Descargar Reportes PDF' => $candownloadPDF,
+            ],
+            
+            'defaultSection' => $canViewUsers ? 'users' : 'sections',
+        ]);
+    }
 
     /* ========== PERSONAS ========== */
-
     public function storePerson(Request $request)
     {
         $request->validate([
@@ -212,6 +210,8 @@ public function index()
             'codigo'   => 'required|string|max:20|unique:users,codigo',
             'password' => 'required|string|min:6',
             'foto'       => 'nullable|image|max:5120',
+            'salario_base' => 'nullable|numeric|min:0|max:99999999.99',
+            'frecuencia_pago' => 'nullable|in:mensual,quincenal',
             'is_active'=> 'boolean',
             'branch_id'  => 'nullable|exists:branches,id',
             'group_id'  => 'nullable|exists:groups,id',
@@ -220,18 +220,21 @@ public function index()
         ]);
 
         $fotoPath = null;
-            if ($request->hasFile('foto')) {
-                $file = $request->file('foto');
-                $nombreOriginal = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->extension();
-                $fotoPath = $file->storeAs('fotos', $nombreOriginal, 'public');
-            }
+        $nombreOriginal = null;
+        if ($request->hasFile('foto')) {
+            $file = $request->file('foto');
+            $nombreOriginal = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->extension();
+            $fotoPath = $file->storeAs('fotos', $nombreOriginal, 'public');
+        }
 
         $user = User::create([
             'nombre'    => $request->nombre,
             'apellido'  => $request->apellido,
             'codigo'    => $request->codigo,
             'password'  => bcrypt($request->password),
-            'foto' => 'fotos/' . $nombreOriginal,
+            'foto' => $nombreOriginal ? 'fotos/' . $nombreOriginal : null,
+            'salario_base' => $request->salario_base,
+            'frecuencia_pago' => $request->frecuencia_pago ?? 'mensual',
             'is_active' => $request->boolean('is_active', true),
             'branch_id' => $request->branch_id !== '' ? $request->branch_id : null,
             'group_id'  => $request->group_id !== '' ? $request->group_id : null,
@@ -239,7 +242,7 @@ public function index()
             'rol_id' => $request->rol_id !== '' ? $request->rol_id : null,
         ]);
 
-        // **NUEVO**: Asignar permisos del rol al nuevo usuario
+        // Asignar permisos del rol al nuevo usuario
         if ($request->filled('rol_id')) {
             $this->assignRolePermissionsToUser($user->id, $request->rol_id);
         }
@@ -249,7 +252,11 @@ public function index()
 
     public function getPerson(User $user)
     {
-        return response()->json($user->only('id', 'nombre', 'codigo', 'is_active', 'branch_id', 'group_id', 'section_id', 'rol_id'));
+        return response()->json($user->only(
+            'id', 'nombre', 'apellido', 'codigo', 'is_active', 
+            'branch_id', 'group_id', 'section_id', 'rol_id', 
+            'salario_base', 'frecuencia_pago'
+        ));
     }
 
     public function updatePerson(Request $request, User $user)
@@ -260,6 +267,8 @@ public function index()
             'codigo'   => ['required','string','max:20', Rule::unique('users')->ignore($user->id)],
             'password' => 'nullable|string|min:6',
             'foto'       => 'nullable|image|max:5120',
+            'salario_base' => 'nullable|numeric|min:0|max:99999999.99',
+            'frecuencia_pago' => 'nullable|in:mensual,quincenal',
             'is_active'=> 'boolean',
             'branch_id'  => 'nullable|exists:branches,id',
             'group_id'  => 'nullable|exists:groups,id',
@@ -270,12 +279,13 @@ public function index()
         // Guardar rol anterior para comparar
         $oldRoleId = $user->rol_id;
 
+        // Manejo de foto
         if ($request->hasFile('foto')) {
             if ($user->foto) {
                 Storage::delete('public/' . $user->foto);
             }
             $file = $request->file('foto');
-            $nombreOriginal = \Illuminate\Support\Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->extension();
+            $nombreOriginal = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->extension();
             $fotoPath = $file->storeAs('fotos', $nombreOriginal, 'public');
             $user->foto = 'fotos/' . $nombreOriginal;
             $user->save();
@@ -285,6 +295,8 @@ public function index()
             'nombre'    => $request->nombre,
             'apellido'  => $request->apellido,
             'codigo'    => $request->codigo,
+            'salario_base' => $request->salario_base,
+            'frecuencia_pago' => $request->frecuencia_pago,
             'is_active' => $request->boolean('is_active', true),
             'branch_id' => $request->branch_id !== '' ? $request->branch_id : null,
             'group_id'  => $request->group_id !== '' ? $request->group_id : null,
@@ -293,7 +305,7 @@ public function index()
             ...( $request->filled('password') ? ['password' => bcrypt($request->password)] : [] ),
         ]);
 
-        // **NUEVO**: Si el rol cambió, sincronizar permisos
+        // Si el rol cambió, sincronizar permisos
         $newRoleId = $request->filled('rol_id') ? $request->rol_id : null;
         
         if ($oldRoleId != $newRoleId) {
