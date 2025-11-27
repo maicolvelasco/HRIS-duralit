@@ -14,6 +14,8 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB; // ← Importar
 use Illuminate\Validation\ValidationException; // ← Importar
+use App\Models\Firma;
+use Illuminate\Support\Facades\Storage;
 
 class PermissionController extends Controller
 {
@@ -393,5 +395,68 @@ class PermissionController extends Controller
                 $overtime->update(['estado' => Overtime::APROBADO]);
             }
         }
+    }
+
+    public function showSign(PermissionRequest $permission)
+    {
+        $user = Auth::user();
+
+        // Verificar si el usuario puede firmar
+        $isHrManager = HrManager::where('user_id', $user->id)->exists();
+        $manager = GroupManager::where('user_id', $user->id)->first();
+        $isGroupManager = $manager && $manager->group->users()->where('id', $permission->user_id)->exists();
+
+        if (!$isHrManager && !$isGroupManager) {
+            abort(403, 'No autorizado para firmar este permiso.');
+        }
+
+        return Inertia::render('Permission/Sign', [
+            'permission' => $permission->load('user'),
+            'isHrManager' => $isHrManager,
+        ]);
+    }
+
+    public function storeSign(Request $request, PermissionRequest $permission)
+    {
+        $user = Auth::user();
+
+        $request->validate([
+            'firma' => 'required|string', // Base64 PNG
+        ]);
+
+        // Verificar si ya firmó
+        $existingFirma = Firma::where('user_id', $user->id)->first();
+        if ($existingFirma) {
+            return back()->with('error', 'Ya has firmado este permiso.');
+        }
+
+        // Decodificar imagen base64
+        $image = $request->input('firma');
+        $image = str_replace('data:image/png;base64,', '', $image);
+        $image = str_replace(' ', '+', $image);
+        $imageData = base64_decode($image);
+
+        // Guardar archivo
+        $filename = $user->codigo . '.png';
+        $path = 'firmas/' . $filename;
+        Storage::disk('public')->put($path, $imageData);
+
+        // Guardar en BD
+        Firma::create([
+            'user_id' => $user->id,
+            'firma' => $path,
+        ]);
+
+        // Aprobar o completar el permiso
+        $isHrManager = HrManager::where('user_id', $user->id)->exists();
+
+        if ($isHrManager) {
+            $permission->update(['estado' => 'Completado']);
+        } else {
+            $permission->update(['estado' => 'Aprobado']);
+        }
+
+        return redirect()->route('permissions.team')
+            ->with('success', 'Permiso firmado y actualizado correctamente.');
     }
 }

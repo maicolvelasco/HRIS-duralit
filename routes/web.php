@@ -100,6 +100,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/permissions/{permission}', [PermissionController::class, 'update'])->name('permissions.update');
     Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->name('permissions.destroy');
     Route::post('/permissions/{permission}/status', [PermissionController::class, 'updateStatus'])->name('permissions.update-status');
+    Route::get('/permissions/{permission}/sign', [PermissionController::class, 'showSign'])->name('permissions.sign');
+    Route::post('/permissions/{permission}/sign', [PermissionController::class, 'storeSign'])->name('permissions.store-sign');
 
     // NUEVA RUTA PARA OBTENER TITULACIONES
     Route::get('/permissions/authorizations/{authorization}/titulations', [PermissionController::class, 'getTitulationsByAuthorization'])->name('permissions.authorizations.titulations');

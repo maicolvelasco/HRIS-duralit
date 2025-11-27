@@ -15,10 +15,10 @@ const user = computed(() => usePage().props.auth.user);
 
 const formatDate = (date) => {
     if (!date) return '';
-    return new Date(date).toLocaleDateString('es-ES', { 
-        day: '2-digit', 
-        month: 'short', 
-        year: 'numeric' 
+    return new Date(date).toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
     });
 };
 
@@ -29,49 +29,50 @@ const formatTime = (time) => {
 
 const formatPeriod = (permission) => {
     const parts = [];
-    
+
     if (permission.fecha_inicio) {
         const fechaInicio = formatDate(permission.fecha_inicio);
         const fechaFin = permission.fecha_fin ? formatDate(permission.fecha_fin) : null;
         parts.push(fechaFin ? `${fechaInicio} - ${fechaFin}` : `Desde ${fechaInicio}`);
     }
-    
+
     if (permission.hora_inicio) {
         const horaInicio = formatTime(permission.hora_inicio);
         const horaFin = permission.hora_fin ? formatTime(permission.hora_fin) : null;
         parts.push(horaFin ? `${horaInicio} - ${horaFin}` : `Desde ${horaInicio}`);
     }
-    
+
     return parts.join(' | ') || '-';
 };
 
 const getStatusClass = (estado) => {
     const classes = {
-        'Pendiente': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-        'Aprobado': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-        'Rechazado': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-        'Completado': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+        Pendiente: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+        Aprobado: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+        Rechazado: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+        Completado: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
     };
     return classes[estado] || 'bg-gray-100 text-gray-800';
 };
 
+const goToSign = (permissionId) => {
+    router.visit(route('permissions.sign', permissionId));
+};
+
 const updateStatus = (permissionId, newStatus) => {
-    let data = { estado: newStatus };
-    let message = `¿Está seguro de ${newStatus === 'Aprobado' ? 'aprobar' : newStatus === 'Completado' ? 'completar' : 'rechazar'} este permiso?`;
-    
-    // Si es rechazar, pedir motivo
     if (newStatus === 'Rechazado') {
         const motivo = prompt('Por favor, ingrese el motivo del rechazo:');
         if (!motivo || motivo.trim() === '') {
             alert('Debe ingresar un motivo para rechazar el permiso.');
             return;
         }
-        data.observaciones = motivo.trim();
-        message = `¿Está seguro de rechazar este permiso con el motivo: "${data.observaciones}"?`;
-    }
-    
-    if (confirm(message)) {
-        router.post(route('permissions.update-status', permissionId), data);
+
+        if (confirm(`¿Está seguro de rechazar este permiso con el motivo: "${motivo.trim()}"?`)) {
+            router.post(route('permissions.update-status', permissionId), {
+                estado: 'Rechazado',
+                observaciones: motivo.trim(),
+            });
+        }
     }
 };
 </script>
@@ -93,7 +94,7 @@ const updateStatus = (permissionId, newStatus) => {
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">
                         {{ isHrManager ? 'Todos los Permisos Aprobados' : 'Permisos Pendientes de mi Equipo' }}
                     </h3>
-                    
+
                     <!-- Versión Escritorio -->
                     <div class="hidden md:block overflow-x-auto">
                         <table class="min-w-full">
@@ -139,12 +140,12 @@ const updateStatus = (permissionId, newStatus) => {
                                         </span>
                                     </td>
                                     <td class="px-4 py-3 text-sm">
-                                        <!-- ✅ HR MANAGERS: Completar o Rechazar -->
+                                        <!-- HR MANAGERS: Completar o Rechazar -->
                                         <template v-if="isHrManager">
                                             <div class="flex gap-2" v-if="perm.estado === 'Aprobado'">
                                                 <PrimaryButton 
                                                     size="sm" 
-                                                    @click="updateStatus(perm.id, 'Completado')"
+                                                    @click="goToSign(perm.id)"
                                                     class="bg-green-600 hover:bg-green-700"
                                                 >
                                                     <Icon name="CheckCircleIcon" class="w-4 h-4" />
@@ -163,13 +164,13 @@ const updateStatus = (permissionId, newStatus) => {
                                                 {{ perm.estado }}
                                             </span>
                                         </template>
-                                        
-                                        <!-- ✅ JEFES DE GRUPO: Aprobar o Rechazar -->
+
+                                        <!-- JEFES DE GRUPO: Aprobar o Rechazar -->
                                         <template v-else>
                                             <div class="flex gap-2" v-if="perm.estado === 'Pendiente'">
                                                 <PrimaryButton 
                                                     size="sm" 
-                                                    @click="updateStatus(perm.id, 'Aprobado')"
+                                                    @click="goToSign(perm.id)"
                                                     class="bg-green-600 hover:bg-green-700"
                                                 >
                                                     <Icon name="CheckCircleIcon" class="w-4 h-4" />
@@ -218,12 +219,12 @@ const updateStatus = (permissionId, newStatus) => {
                                 <div>Autorización: {{ perm.authorization?.nombre || '-' }}</div>
                                 <div>Observaciones: {{ perm.observaciones || '-' }}</div>
                             </div>
-                            <!-- ✅ HR MANAGERS: Completar o Rechazar (móvil) -->
+                            <!-- HR MANAGERS: Completar o Rechazar (móvil) -->
                             <template v-if="isHrManager">
                                 <div class="grid grid-cols-2 gap-2 mt-3" v-if="perm.estado === 'Aprobado'">
                                     <PrimaryButton 
                                         size="sm" 
-                                        @click="updateStatus(perm.id, 'Completado')"
+                                        @click="goToSign(perm.id)"
                                         class="bg-green-600 hover:bg-green-700"
                                     >
                                         <Icon name="CheckCircleIcon" class="w-4 h-4" />
@@ -239,12 +240,12 @@ const updateStatus = (permissionId, newStatus) => {
                                     </PrimaryButton>
                                 </div>
                             </template>
-                            <!-- ✅ JEFES DE GRUPO: Aprobar o Rechazar (móvil) -->
+                            <!-- JEFES DE GRUPO: Aprobar o Rechazar (móvil) -->
                             <template v-else>
                                 <div class="grid grid-cols-2 gap-2 mt-3" v-if="perm.estado === 'Pendiente'">
                                     <PrimaryButton 
                                         size="sm" 
-                                        @click="updateStatus(perm.id, 'Aprobado')"
+                                        @click="goToSign(perm.id)"
                                         class="bg-green-600 hover:bg-green-700"
                                     >
                                         <Icon name="CheckCircleIcon" class="w-4 h-4" />
