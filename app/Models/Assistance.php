@@ -29,6 +29,8 @@ class Assistance extends Model
     protected $casts = [
         'entrada' => 'boolean',
         'salida'  => 'boolean',
+        'fecha_entrada' => 'date',
+        'hora_entrada' => 'datetime:H:i',
     ];
 
     public function user(): BelongsTo

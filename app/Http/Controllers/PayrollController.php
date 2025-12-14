@@ -171,13 +171,17 @@ class PayrollController extends Controller
             }
         }
 
-        $diasConAsistencia = $asistencias->pluck('fecha_entrada')->map->format('Y-m-d');
+        $diasConAsistencia = $asistencias->pluck('fecha_entrada')->map(function ($fecha) {
+            return \Carbon\Carbon::parse($fecha)->format('Y-m-d');
+        });
         
         $diasPermiso = PermissionRequest::where('user_id', $payroll->user_id)
             ->where('estado', 'Aprobado')
             ->whereBetween('fecha_inicio', [$fechaInicio, $fechaFin])
             ->pluck('fecha_inicio')
-            ->map->format('Y-m-d');
+            ->map(function ($fecha) {
+                return \Carbon\Carbon::parse($fecha)->format('Y-m-d');
+            });
 
         $diasFalta = 0;
         for ($fecha = $fechaInicio->copy(); $fecha->lte($fechaFin); $fecha->addDay()) {

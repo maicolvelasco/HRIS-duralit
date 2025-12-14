@@ -17,19 +17,18 @@ class SyncBiometricAttendance extends Command
 
     public function handle()
     {
-        $deviceIp = config('biometric.ip', '192.168.1.100'); // Cambia en tu .env
+        $deviceIp = config('biometric.ip', '192.168.1.100');
         $devicePort = config('biometric.port', 4370);
 
         $this->info("🔌 Conectando al biométrico {$deviceIp}:{$devicePort}...");
 
         $zk = new ZKTeco($deviceIp, $devicePort);
-        
         if (!$zk->connect()) {
             $this->error('❌ No se pudo conectar al dispositivo');
             return 1;
         }
 
-        $zk->disableDevice(); // Para que no interfiera mientras leemos
+        $zk->disableDevice();
         $logs = $zk->getAttendance();
         $zk->enableDevice();
         $zk->disconnect();
@@ -49,11 +48,7 @@ class SyncBiometricAttendance extends Command
 
     private function processLog($log)
     {
-        // $log contiene: ['uid' => 1, 'id' => '112233', 'state' => 1, 'timestamp' => '2025-11-27 08:00:00']
-        
-        // Buscar usuario por código
         $user = User::where('codigo', $log['id'])->first();
-        
         if (!$user) {
             $this->warn("⚠️ Usuario no encontrado: {$log['id']}");
             return false;
@@ -63,42 +58,30 @@ class SyncBiometricAttendance extends Command
         $fecha = $timestamp->format('Y-m-d');
         $hora = $timestamp->format('H:i:s');
 
-        // Verificar si ya existe asistencia para este día
         $asistencia = Assistance::where('user_id', $user->id)
             ->where('fecha_entrada', $fecha)
             ->first();
 
         if (!$asistencia) {
-            // PRIMERA MARCA = ENTRADA
             return $this->registrarEntrada($user, $fecha, $hora, $timestamp);
         } else {
-            // SEGUNDA MARCA = SALIDA
             return $this->registrarSalida($asistencia, $fecha, $hora, $timestamp);
         }
     }
 
     private function registrarEntrada($user, $fecha, $hora, $timestamp)
     {
-        // Verificar si ya existe una entrada para evitar duplicados
-        $existe = Assistance::where('user_id', $user->id)
-            ->where('fecha_entrada', $fecha)
-            ->exists();
-
-        if ($existe) {
-            return false; // Ya existe, saltar
-        }
-
-        // Obtener turno para validar retraso
         $diaSemana = strtolower($timestamp->locale('es')->dayName);
         $turno = $this->getUserShiftForDay($user, $diaSemana, $timestamp);
 
-        $esRetraso = false;
-        if ($turno) {
-            $horaEntradaTurno = Carbon::parse($turno->hora_inicio);
-            $esRetraso = $timestamp->greaterThan($horaEntradaTurno);
+        if (!$turno) {
+            $this->warn("🚫 Sin turno asignado para {$user->nombre} el {$fecha}");
+            return false;
         }
 
-        // Crear registro de asistencia
+        $horaEntradaTurno = Carbon::parse($turno->hora_inicio);
+        $esRetraso = $timestamp->greaterThan($horaEntradaTurno);
+
         $asistencia = Assistance::create([
             'id'             => Str::uuid(),
             'user_id'        => $user->id,
@@ -113,22 +96,24 @@ class SyncBiometricAttendance extends Command
             'retraso'       => $esRetraso,
         ]);
 
-        $this->info("✅ ENTRADA: {$user->nombre} {$user->apellido} - {$fecha} {$hora}");
+        $this->info("✅ ENTRADA: {$user->nombre} {$user->apellido} - {$fecha} {$hora}" . ($esRetraso ? ' (RETRASO)' : ''));
         return true;
     }
 
     private function registrarSalida($asistencia, $fecha, $hora, $timestamp)
     {
-        // Si ya tiene salida, no procesar de nuevo
-        if ($asistencia->salida) {
+        if ($asistencia->salida) return false;
+
+        $horaEntrada = Carbon::parse($asistencia->hora_entrada);
+        $minutosDiferencia = $horaEntrada->diffInMinutes($timestamp);
+
+        // ❌ Si pasó menos de 5 minutos, no es salida válida
+        if ($minutosDiferencia < 5) {
+            $this->info("⏳ Marca ignorada (menos de 5 minutos después de entrada): {$hora}");
             return false;
         }
 
-        // Calcular si cumplió jornada
-        $horaEntrada = Carbon::parse($asistencia->hora_entrada);
-        $minutosTrabajados = $horaEntrada->diffInMinutes($timestamp);
-
-        // Obtener turno para minutos esperados
+        // ✅ Procesar como salida válida
         $user = User::find($asistencia->user_id);
         $diaSemana = strtolower($timestamp->locale('es')->dayName);
         $turno = $this->getUserShiftForDay($user, $diaSemana, $timestamp);
@@ -137,27 +122,26 @@ class SyncBiometricAttendance extends Command
         if ($turno) {
             $horaSalidaTurno = Carbon::parse($turno->hora_fin);
             $minutosEsperados = $horaEntrada->diffInMinutes($horaSalidaTurno);
-            $cumplido = $minutosTrabajados >= $minutosEsperados;
+            $cumplido = $minutosDiferencia >= $minutosEsperados;
         }
 
-        // Actualizar salida
         $asistencia->update([
             'fecha_salida' => $fecha,
             'hora_salida'  => $hora,
             'salida'       => true,
         ]);
 
-        // Actualizar afirmación
         $afirmacion = Affirmation::where('assistance_id', $asistencia->id)->first();
         if ($afirmacion) {
             $afirmacion->update(['retraso' => !$cumplido]);
         }
 
-        $this->info("🚪 SALIDA: {$user->nombre} {$user->apellido} - {$fecha} {$hora}");
+        $this->info("🚪 SALIDA: {$user->nombre} {$user->apellido} - {$fecha} {$hora}" . (!$cumplido ? ' (NO CUMPLIÓ)' : ''));
         return true;
     }
 
-    // Método para obtener el turno (copiado de tu controller)
+    // ===== MISMA LÓGICA QUE EN EL CONTROLADOR =====
+
     private function getUserShiftForDay($user, $diaSemana, $fecha)
     {
         if ($user->shifts->isNotEmpty()) {
@@ -182,7 +166,7 @@ class SyncBiometricAttendance extends Command
     {
         foreach ($shifts as $shift) {
             foreach ($shift->schedules as $schedule) {
-                $dias = $schedule->dias; // Importante: decode JSON
+                $dias = $schedule->dias;
                 if (is_array($dias) && in_array($diaSemana, $dias)) {
                     $desde = Carbon::parse($shift->desde);
                     $hasta = Carbon::parse($shift->hasta);
