@@ -1,53 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Reporte de Permisos de Trabajo</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 40px; }
-        .header { border-bottom: 3px solid #6B7280; padding-bottom: 20px; margin-bottom: 30px; }
-        .header h1 { color: #1F2937; margin: 0; font-size: 28px; }
-        .header p { color: #6B7280; margin: 5px 0 0; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #6B7280; color: white; padding: 12px; text-align: left; font-weight: 600; }
-        td { padding: 10px 12px; border-bottom: 1px solid #E5E7EB; }
-        tr:nth-child(even) { background: #F9FAFB; }
-        .footer { margin-top: 40px; text-align: center; color: #9CA3AF; font-size: 12px; }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #fff;
+            color: #1F2937;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        @page {
+            size: A4 landscape;
+            margin: 12mm 8mm 8mm 8mm;
+        }
+
+        .header {
+            border-bottom: 2px solid #6B7280;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+        }
+
+        .header h1 {
+            font-size: 16px;
+            color: #1F2937;
+            margin: 0;
+        }
+
+        .header p {
+            font-size: 8px;
+            color: #6B7280;
+            margin-top: 2px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #6B7280;
+            color: #fff;
+            padding: 5px 4px;
+            font-weight: 600;
+            font-size: 8px;
+            text-align: left;
+        }
+
+        td {
+            padding: 4px;
+            font-size: 8px;
+            border-bottom: 0.5px solid #E5E7EB;
+            vertical-align: top;
+        }
+
+        tr:nth-child(even) {
+            background: #F9FAFB;
+        }
+
+        .footer {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 7px;
+            color: #9CA3AF;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📋 Reporte de Permisos de Trabajo</h1>
-            <p>Generado el: {{ $generated_at->format('d/m/Y H:i:s') }}</p>
-        </div>
+    <div class="header">
+        <h1>Reporte de Permisos de Trabajo</h1>
+        <p>Generado el: {{ $generated_at->format('d/m/Y H:i:s') }}</p>
+    </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>NOMBRE</th>
-                    <th>DESCRIPCIÓN</th>
-                    <th>CREADO EL</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($data as $authorization)
-                <tr>
-                    <td>{{ $authorization->id }}</td>
-                    <td>{{ $authorization->nombre }}</td>
-                    <td>{{ $authorization->descripcion ?? 'N/A' }}</td>
-                    <td>{{ $authorization->created_at->format('d/m/Y H:i:s') }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+    <table>
+        <thead>
+            <tr>
+                <th>NOMBRE</th>
+                <th>DESCRIPCIÓN</th>
+                <th>CREADO EL</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($data as $authorization)
+            <tr>
+                <td>{{ $authorization->nombre }}</td>
+                <td>{{ $authorization->descripcion ?? 'N/A' }}</td>
+                <td>{{ $authorization->created_at->format('d/m/Y H:i') }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
 
-        <div class="footer">
-            <p>© {{ date('Y') }} - Sistema de Gestión de Recursos Humanos</p>
-        </div>
+    <div class="footer">
+        <p>© {{ date('Y') }} - Sistema de Gestión de Recursos Humanos</p>
+        <p>Página generada el {{ $generated_at->format('d/m/Y H:i:s') }}</p>
     </div>
 </body>
 </html>

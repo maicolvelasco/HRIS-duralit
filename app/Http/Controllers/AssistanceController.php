@@ -10,6 +10,8 @@ use App\Models\ShiftSchedule;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class AssistanceController extends Controller
 {
@@ -208,5 +210,50 @@ class AssistanceController extends Controller
             }
         }
         return null;
+    }
+
+    public function export(Request $request)
+    {
+        $user = auth()->user();
+        $format = $request->input('format', 'excel'); // excel | pdf
+
+        // mismo filtro que usas en index
+        if ($user->canDo('Control de Asistencia Propio')) {
+            $assistances = Assistance::with(['user', 'affirmation'])
+                ->where('user_id', $user->id)
+                ->latest()
+                ->get();
+        } elseif ($user->canDo('Control de Asistencia')) {
+            $assistances = Assistance::with(['user', 'affirmation'])
+                ->latest()
+                ->get();
+        } else {
+            abort(403, 'No tienes permiso para descargar reportes.');
+        }
+
+        $filters = ['date_range' => 'all'];
+        $filename = 'reporte_asistencias_' . now()->format('Y-m-d');
+
+        if ($format === 'pdf') {
+            return response()->streamDownload(
+                function () use ($assistances, $filters) {
+                    print Pdf::loadView('pdf.reports.assistances', [
+                        'data' => $assistances,
+                        'filters' => $filters,
+                        'generated_at' => now()
+                    ])
+                    ->setPaper('A4', 'landscape')
+                    ->output();
+                },
+                $filename . '.pdf',
+                ['Content-Type' => 'application/pdf']
+            );
+        }
+
+        // Excel
+        return Excel::download(
+            new \App\Exports\Reports\AssistancesExport($assistances, $filters),
+            $filename . '.xlsx'
+        );
     }
 }

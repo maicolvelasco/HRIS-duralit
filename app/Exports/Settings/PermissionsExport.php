@@ -3,18 +3,27 @@
 namespace App\Exports\Settings;
 
 use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
-use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\{
+    FromCollection,
+    WithHeadings,
+    WithMapping,
+    WithStyles,
+    WithColumnWidths,
+    WithEvents,
+    WithTitle,
+    ShouldAutoSize
+};
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Style\{
+    Fill,
+    Border,
+    Alignment
+};
 
-class PermissionsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithEvents
+class PermissionsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithEvents, WithTitle, ShouldAutoSize
 {
-    protected $data;
+    protected Collection $data;
 
     public function __construct(Collection $data)
     {
@@ -26,48 +35,117 @@ class PermissionsExport implements FromCollection, WithHeadings, WithMapping, Wi
         return $this->data;
     }
 
+    public function title(): string
+    {
+        return 'Reporte de Permisos';
+    }
+
     public function headings(): array
     {
         return [
             ['REPORTE DE PERMISOS'],
-            ['Generado el: ' . now()->format('d/m/Y H:i:s')],
+            ['Generado el: ' . now()->format('d/m/Y H:i')],
             [],
-            ['ID', 'NOMBRE', 'DESCRIPCIÓN', 'ROLES ASIGNADOS', 'FECHA CREACIÓN']
+            [],
+            ['NOMBRE', 'DESCRIPCIÓN', 'ROLES ASIGNADOS', 'FECHA CREACIÓN']
         ];
     }
 
     public function map($permission): array
     {
         return [
-            $permission->id,
             $permission->nombre,
             $permission->descripcion ?? 'N/A',
             $permission->roles->pluck('nombre')->implode(', ') ?: 'NINGUNO',
-            $permission->created_at->format('d/m/Y H:i:s'),
+            $permission->created_at->format('d/m/Y H:i'),
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
-        return [
-            1 => ['font' => ['bold' => true, 'size' => 16]],
-            2 => ['font' => ['italic' => true, 'size' => 11]],
-            4 => ['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 
-                  'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => 'DC2626']]],
-        ];
+        $lastRow = $this->data->count() + 5;
+
+        // Título principal
+        $sheet->mergeCells('A1:D1');
+        $sheet->mergeCells('A2:D2');
+        $sheet->mergeCells('A3:D3');
+        $sheet->getStyle('A1:D3')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF'],
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '1F2937'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical'   => Alignment::VERTICAL_CENTER,
+            ],
+        ]);
+
+        // Encabezado de tabla
+        $sheet->getStyle('A5:D5')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF'],
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'DC2626'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical'   => Alignment::VERTICAL_CENTER,
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000'],
+                ],
+            ],
+        ]);
+
+        // Cuerpo de tabla
+        $sheet->getStyle("A6:D{$lastRow}")->applyFromArray([
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => 'D1D5DB'],
+                ],
+            ],
+            'alignment' => [
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+        ]);
+
+        $sheet->getRowDimension(5)->setRowHeight(25);
+        $sheet->setAutoFilter('A5:D5');
     }
 
     public function columnWidths(): array
     {
-        return ['A' => 10, 'B' => 30, 'C' => 40, 'D' => 35, 'E' => 20];
+        return [
+            'A' => 35,
+            'B' => 50,
+            'C' => 40,
+            'D' => 20,
+        ];
     }
 
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function(AfterSheet $event) {
-                $event->sheet->getDelegate()->mergeCells('A1:E1');
-                $event->sheet->getDelegate()->mergeCells('A2:E2');
+            AfterSheet::class => function (AfterSheet $event) {
+                // Logo (opcional)
+                // $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+                // $drawing->setName('Logo');
+                // $drawing->setDescription('Logo');
+                // $drawing->setPath(public_path('img/logo.png'));
+                // $drawing->setCoordinates('A1');
+                // $drawing->setHeight(40);
+                // $drawing->setWorksheet($event->sheet->getDelegate());
             },
         ];
     }

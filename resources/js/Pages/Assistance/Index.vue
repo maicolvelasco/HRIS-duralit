@@ -37,6 +37,23 @@ function openSalidaModal(ass) {
           <div class="p-6 text-gray-900 dark:text-gray-100">
             <div class="mb-4 flex items-center justify-between">
               <span class="text-lg font-medium">Listado de asistencias</span>
+
+                            <!-- Botones de descarga -->
+              <div class="flex items-center gap-2">
+                <a
+                  :href="route('assistance.export', { format: 'excel' })"
+                  class="rounded-md bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-500"
+                >
+                  Excel
+                </a>
+                <a
+                  :href="route('assistance.export', { format: 'pdf' })"
+                  class="rounded-md bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-500"
+                >
+                  PDF
+                </a>
+              </div>
+
               <button
                 v-if="permissions['Registro de Entrada'] || permissions['Control de Asistencia']"
                 @click="showEntrada = true"
@@ -70,7 +87,7 @@ function openSalidaModal(ass) {
                     <td class="px-4 py-2">
                       {{ ass.user.nombre }} {{ ass.user.apellido }}
                     </td>
-                    <td class="px-4 py-2">{{ ass.fecha_entrada ?? '-' }}</td>
+                    <td class="px-4 py-2">{{ ass.fecha_entrada ? ass.fecha_entrada.split('T')[0] : '-' }}</td>
                     <td class="px-4 py-2">{{ ass.hora_entrada ?? '-' }}</td>
                     <td class="px-4 py-2">{{ ass.fecha_salida ?? '-' }}</td>
                     <td class="px-4 py-2">{{ ass.hora_salida ?? '-' }}</td>

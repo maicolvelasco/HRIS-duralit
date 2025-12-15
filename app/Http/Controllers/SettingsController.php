@@ -1070,10 +1070,69 @@ class SettingsController extends Controller
                     });
                 }
                 return $query->select('id', 'nombre', 'jornada', 'semanal', 'desde', 'hasta')->get();
-                
+              
+            case 'roles':
+                $query = \App\Models\Rol::withCount('permissions');
+                if ($dateRange === 'between' && $startDate && $endDate) {
+                    $query->whereBetween('created_at', [$startDate, $endDate]);
+                }
+                return $query->select('id', 'nombre', 'descripcion', 'created_at')
+                            ->orderBy('nombre')
+                            ->get();
+
+            case 'permissions':
+                $query = Permission::with('roles');  // <- CARGAS LA RELACIÓN
+                if ($dateRange === 'between' && $startDate && $endDate) {
+                    $query->whereBetween('created_at', [$startDate, $endDate]);
+                }
+                return $query->select('id', 'nombre', 'descripcion', 'created_at')
+                            ->orderBy('nombre')
+                            ->get();
+
+            case 'holidays':
+                $query = \App\Models\Calendar::with('branch'); // <- relación existe
+                if ($dateRange === 'between' && $startDate && $endDate) {
+                    $query->whereBetween('fecha', [$startDate, $endDate]);
+                }
+                return $query->select('id', 'fecha', 'nombre', 'created_at')
+                            ->orderBy('fecha')
+                            ->get();
+            
+            case 'groups':
+                $query = \App\Models\Group::query();
+                if ($dateRange === 'between' && $startDate && $endDate) {
+                    $query->whereBetween('created_at', [$startDate, $endDate]);
+                }
+                return $query->select('id', 'nombre', 'descripcion', 'created_at')
+                            ->orderBy('nombre')
+                            ->get();
+
+            case 'branches':
+                $query = \App\Models\Branch::query();
+                if ($dateRange === 'between' && $startDate && $endDate) {
+                    $query->whereBetween('created_at', [$startDate, $endDate]);
+                }
+                return $query->select('nombre', 'departamento', 'provincia', 'localidad', 'created_at')
+                            ->orderBy('nombre')
+                            ->get();
+
+            case 'authorizations':
+                $query = \App\Models\Authorization::query();
+                if ($dateRange === 'between' && $startDate && $endDate) {
+                    $query->whereBetween('created_at', [$startDate, $endDate]);
+                }
+                return $query->select('nombre', 'descripcion', 'created_at')
+                            ->orderBy('nombre')
+                            ->get();
             default:
                 return $this->getReportData($section, $filters); // Usar método original para otros
         }
+    }
+
+    private function getReportData()
+    {
+        // Ejemplo para secciones
+        return $sections = \App\Models\Section::orderBy('nombre')->get();
     }
 
     // ✅ MÉTODO EXCEL CON STREAMING

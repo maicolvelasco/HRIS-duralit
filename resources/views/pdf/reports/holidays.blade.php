@@ -1,74 +1,141 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Reporte de Feriados</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 40px; }
-        .header { border-bottom: 3px solid #DC2626; padding-bottom: 20px; margin-bottom: 30px; }
-        .header h1 { color: #1F2937; margin: 0; font-size: 28px; }
-        .header p { color: #6B7280; margin: 5px 0 0; }
-        .filters { background: #FEF2F2; padding: 15px; border-radius: 8px; margin-bottom: 30px; border-left: 4px solid #DC2626; }
-        .filters strong { color: #991B1B; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #DC2626; color: white; padding: 12px; text-align: left; font-weight: 600; }
-        td { padding: 10px 12px; border-bottom: 1px solid #E5E7EB; }
-        tr:nth-child(even) { background: #F9FAFB; }
-        .footer { margin-top: 40px; text-align: center; color: #9CA3AF; font-size: 12px; }
-        .branches { font-size: 11px; color: #6B7280; }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #fff;
+            color: #1F2937;
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        @page {
+            size: A4 landscape;
+            margin: 12mm 8mm 8mm 8mm;
+        }
+
+        .header {
+            border-bottom: 2px solid #DC2626;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+        }
+
+        .header h1 {
+            font-size: 16px;
+            color: #1F2937;
+            margin: 0;
+        }
+
+        .header p {
+            font-size: 8px;
+            color: #6B7280;
+            margin-top: 2px;
+        }
+
+        .filters {
+            background: #FEF2F2;
+            padding: 4px 6px;
+            border-radius: 3px;
+            margin-bottom: 6px;
+            border-left: 2px solid #DC2626;
+            font-size: 7px;
+            color: #991B1B;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #DC2626;
+            color: #fff;
+            padding: 5px 4px;
+            font-weight: 600;
+            font-size: 8px;
+            text-align: left;
+        }
+
+        td {
+            padding: 4px;
+            font-size: 8px;
+            border-bottom: 0.5px solid #E5E7EB;
+            vertical-align: top;
+        }
+
+        tr:nth-child(even) {
+            background: #F9FAFB;
+        }
+
+        .branches {
+            font-size: 7px;
+            color: #6B7280;
+            line-height: 1.2;
+        }
+
+        .footer {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 7px;
+            color: #9CA3AF;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📅 Reporte de Feriados</h1>
-            <p>Generado el: {{ $generated_at->format('d/m/Y H:i:s') }}</p>
-        </div>
+    <div class="header">
+        <h1>Reporte de Feriados</h1>
+        <p>Generado el: {{ $generated_at->format('d/m/Y H:i:s') }}</p>
+    </div>
 
-        @if($filters['date_range'] === 'between')
+    @if($filters['date_range'] === 'between')
         <div class="filters">
-            <strong>Rango de fechas:</strong> Desde {{ $filters['start_date'] }} hasta {{ $filters['end_date'] }}
+            <strong>Rango:</strong> Desde {{ $filters['start_date'] }} hasta {{ $filters['end_date'] }}
         </div>
-        @endif
+    @endif
 
-        <table>
-            <thead>
+    <table>
+        <thead>
+            <tr>
+                <th>FECHA</th>
+                <th>NOMBRE</th>
+                <th>SUCURSALES AFECTADAS</th>
+                <th>CREADO EL</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($data as $holiday)
                 <tr>
-                    <th>ID</th>
-                    <th>FECHA</th>
-                    <th>NOMBRE</th>
-                    <th>TIPO</th>
-                    <th>SUCURSALES AFECTADAS</th>
-                    <th>CREADO EL</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($data as $holiday)
-                <tr>
-                    <td>{{ $holiday->id }}</td>
-                    <td>{{ $holiday->date->format('d/m/Y') }}</td>
-                    <td>{{ $holiday->name }}</td>
-                    <td>{{ $holiday->type }}</td>
+                    <td>{{ $holiday->fecha->format('d/m/Y') }}</td>
+                    <td>{{ $holiday->nombre }}</td>
                     <td>
-                        @if($holiday->branches->isNotEmpty())
+                        @if($holiday->branch->isNotEmpty())
                             <div class="branches">
-                                {{ $holiday->branches->pluck('nombre')->implode(', ') }}
+                                {{ $holiday->branch->pluck('nombre')->implode(', ') }}
                             </div>
                         @else
                             <em>Todas las sucursales</em>
                         @endif
                     </td>
-                    <td>{{ $holiday->created_at->format('d/m/Y H:i:s') }}</td>
+                    <td>{{ $holiday->created_at->format('d/m/Y H:i') }}</td>
                 </tr>
-                @endforeach
-            </tbody>
-        </table>
+            @endforeach
+        </tbody>
+    </table>
 
-        <div class="footer">
-            <p>© {{ date('Y') }} - Sistema de Gestión de Recursos Humanos</p>
-        </div>
+    <div class="footer">
+        <p>© {{ date('Y') }} - Sistema de Gestión de Recursos Humanos</p>
+        <p>Página generada el {{ $generated_at->format('d/m/Y H:i:s') }}</p>
     </div>
 </body>
 </html>

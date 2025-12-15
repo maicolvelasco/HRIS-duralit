@@ -3,16 +3,25 @@
 namespace App\Exports\Settings;
 
 use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
-use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\{
+    FromCollection,
+    WithHeadings,
+    WithMapping,
+    WithStyles,
+    WithColumnWidths,
+    WithEvents,
+    WithTitle,
+    ShouldAutoSize
+};
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Style\{
+    Fill,
+    Border,
+    Alignment
+};
 
-class SectionsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithEvents
+class SectionsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithEvents, WithTitle, ShouldAutoSize
 {
     protected $data;
 
@@ -26,47 +35,118 @@ class SectionsExport implements FromCollection, WithHeadings, WithMapping, WithS
         return $this->data;
     }
 
+    public function title(): string
+    {
+        return 'Reporte de Secciones';
+    }
+
     public function headings(): array
     {
         return [
             ['REPORTE DE SECCIONES'],
-            ['Generado el: ' . now()->format('d/m/Y H:i:s')],
+            ['Generado el: ' . now()->format('d/m/Y H:i')],
             [],
-            ['ID', 'NOMBRE', 'DESCRIPCIÓN', 'CREADO EL']
+            [],
+            ['NOMBRE', 'DESCRIPCIÓN', 'CREADO EL']
         ];
     }
 
     public function map($section): array
     {
         return [
-            $section->id,
             $section->nombre,
             $section->descripcion ?? 'N/A',
-            $section->created_at->format('d/m/Y H:i:s'),
+            $section->created_at->format('d/m/Y H:i'),
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
-        return [
-            1 => ['font' => ['bold' => true, 'size' => 16]],
-            2 => ['font' => ['italic' => true, 'size' => 11]],
-            4 => ['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 
-                  'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => 'F59E0B']]],
-        ];
+        $lastRow = $this->data->count() + 5;
+
+        // Título principal
+        $sheet->mergeCells('A1:C1');
+        $sheet->mergeCells('A2:C2');
+        $sheet->mergeCells('A3:C3');
+        $sheet->getStyle('A1:C3')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF'],
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '1F2937'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+        ]);
+
+        // Encabezado de tabla
+        $sheet->getStyle('A5:C5')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF'],
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '374151'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000'],
+                ],
+            ],
+        ]);
+
+        // Cuerpo de tabla
+        $sheet->getStyle("A6:C{$lastRow}")->applyFromArray([
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => 'D1D5DB'],
+                ],
+            ],
+            'alignment' => [
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+        ]);
+
+        // Altura de filas
+        $sheet->getRowDimension(5)->setRowHeight(25);
+
+        // Filtros activos
+        $sheet->setAutoFilter('A5:C5');
     }
 
     public function columnWidths(): array
     {
-        return ['A' => 10, 'B' => 25, 'C' => 45, 'D' => 20];
+        return [
+            'A' => 30,
+            'B' => 50,
+            'C' => 20,
+        ];
     }
 
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function(AfterSheet $event) {
-                $event->sheet->getDelegate()->mergeCells('A1:D1');
-                $event->sheet->getDelegate()->mergeCells('A2:D2');
+            AfterSheet::class => function (AfterSheet $event) {
+                // Logo (opcional)
+                // $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+                // $drawing->setName('Logo');
+                // $drawing->setDescription('Logo');
+                // $drawing->setPath(public_path('img/logo.png'));
+                // $drawing->setCoordinates('A1');
+                // $drawing->setHeight(40);
+                // $drawing->setWorksheet($event->sheet->getDelegate());
             },
         ];
     }

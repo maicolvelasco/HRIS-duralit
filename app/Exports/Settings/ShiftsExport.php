@@ -3,16 +3,25 @@
 namespace App\Exports\Settings;
 
 use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
-use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\{
+    FromCollection,
+    WithHeadings,
+    WithMapping,
+    WithStyles,
+    WithColumnWidths,
+    WithEvents,
+    WithTitle,
+    ShouldAutoSize
+};
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Style\{
+    Fill,
+    Border,
+    Alignment
+};
 
-class ShiftsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithEvents
+class ShiftsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithEvents, WithTitle, ShouldAutoSize
 {
     protected $data;
 
@@ -26,19 +35,25 @@ class ShiftsExport implements FromCollection, WithHeadings, WithMapping, WithSty
         return $this->data;
     }
 
+    public function title(): string
+    {
+        return 'Reporte de Turnos';
+    }
+
     public function headings(): array
     {
         return [
             ['REPORTE DE TURNOS'],
-            ['Generado el: ' . now()->format('d/m/Y H:i:s')],
+            ['Generado el: ' . now()->format('d/m/Y H:i')],
             [],
-            ['ID', 'NOMBRE', 'JORNADA (h)', 'SEMANAL (h)', 'DESDE', 'HASTA', 'HORARIOS', 'ASIGNADO A']
+            [],
+            ['NOMBRE', 'JORNADA (h)', 'SEMANAL (h)', 'DESDE', 'HASTA', 'HORARIOS', 'ASIGNADO A']
         ];
     }
 
     public function map($shift): array
     {
-        $schedules = $shift->schedules->map(function($s) {
+        $schedules = $shift->schedules->map(function ($s) {
             return "{$s->hora_inicio} - {$s->hora_fin} (" . implode(', ', $s->dias) . ")";
         })->implode(" | ");
 
@@ -50,7 +65,6 @@ class ShiftsExport implements FromCollection, WithHeadings, WithMapping, WithSty
         if ($shift->roles->isNotEmpty()) $assigned->push('Roles');
 
         return [
-            $shift->id,
             $shift->nombre,
             $shift->jornada,
             $shift->semanal,
@@ -63,27 +77,95 @@ class ShiftsExport implements FromCollection, WithHeadings, WithMapping, WithSty
 
     public function styles(Worksheet $sheet)
     {
-        return [
-            1 => ['font' => ['bold' => true, 'size' => 16]],
-            2 => ['font' => ['italic' => true, 'size' => 11]],
-            4 => ['font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']], 
-                  'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '8B5CF6']]],
-        ];
+        $lastRow = $this->data->count() + 5;
+
+        // Título principal
+        $sheet->mergeCells('A1:G1');
+        $sheet->mergeCells('A2:G2');
+        $sheet->mergeCells('A3:G3');
+        $sheet->getStyle('A1:G3')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF'],
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '1F2937'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+        ]);
+
+        // Encabezado de tabla
+        $sheet->getStyle('A5:G5')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF'],
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '374151'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000'],
+                ],
+            ],
+        ]);
+
+        // Cuerpo de tabla
+        $sheet->getStyle("A6:G{$lastRow}")->applyFromArray([
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => 'D1D5DB'],
+                ],
+            ],
+            'alignment' => [
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+        ]);
+
+        // Altura de filas
+        $sheet->getRowDimension(5)->setRowHeight(25);
+
+        // Filtros activos
+        $sheet->setAutoFilter('A5:G5');
     }
 
     public function columnWidths(): array
     {
-        return ['A' => 10, 'B' => 25, 'C' => 15, 'D' => 15, 'E' => 12, 'F' => 12, 'G' => 50, 'H' => 30];
+        return [
+            'A' => 25,
+            'B' => 12,
+            'C' => 12,
+            'D' => 12,
+            'E' => 12,
+            'F' => 50,
+            'G' => 30,
+        ];
     }
 
     public function registerEvents(): array
     {
         return [
-            AfterSheet::class => function(AfterSheet $event) {
-                $event->sheet->getDelegate()->mergeCells('A1:H1');
-                $event->sheet->getDelegate()->mergeCells('A2:H2');
-                $event->sheet->getDelegate()->getStyle('G')->getAlignment()->setWrapText(true);
-                $event->sheet->getDelegate()->getStyle('H')->getAlignment()->setWrapText(true);
+            AfterSheet::class => function (AfterSheet $event) {
+                // Logo (opcional)
+                // $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+                // $drawing->setName('Logo');
+                // $drawing->setDescription('Logo');
+                // $drawing->setPath(public_path('img/logo.png'));
+                // $drawing->setCoordinates('A1');
+                // $drawing->setHeight(40);
+                // $drawing->setWorksheet($event->sheet->getDelegate());
             },
         ];
     }

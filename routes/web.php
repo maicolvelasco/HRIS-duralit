@@ -90,7 +90,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/assistances', [AssistanceController::class, 'index'])->name('assistances.index');
     Route::post('/assistances/entrada-manual', [AssistanceController::class, 'storeEntradaManual'])->name('assistances.entrada.manual');
     Route::patch('/assistances/{assistance}/salida-manual', [AssistanceController::class, 'storeSalidaManual'])->name('assistances.salida.manual');
-
+    Route::get('/asistencias/export', [AssistanceController::class, 'export'])->name('assistance.export');
+    
     Route::get('/rrhh', [HrManagerController::class, 'index'])->name('rrhh.index');
     Route::post('/rrhh', [HrManagerController::class, 'store'])->name('rrhh.store');
     Route::put('/rrhh', [HrManagerController::class, 'update'])->name('rrhh.update');
